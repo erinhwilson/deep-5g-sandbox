@@ -1,0 +1,103 @@
+exp_theme	exp_condition	#sample	shortd	longd	carbon_source	oxygen_level	nitrate_level	copper_level	lanthanum_level	growth_rate	growth_mode	include?	notes
+lowO2_slow_growth	lowO2_slow_growth	5GB1_ferm_Ack_QC	ferm_Ack_QC	Melissa needs to provide details (acetate kinase)	2	0	0	3	0	0	0	0	outlier sample
+lowO2_slow_growth	lowO2_slow_growth	5GB1_ferm_WT_QC	ferm_WT_QC	Melissa needs to provide details	2	0	0	3	0	0	0	0	outlier sample
+uMax	uMax	5GB1_FM03_TR1_QC	uMax_QC	"Fermentor run 3, uMax though close to O2 limited, QC"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM03_TR2_QC	uMax_QC	"Fermentor run 3, uMax though close to O2 limited, QC"	2	1	0	3	0	2	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM11_TR1_QC	lowO2_QC	"Fermentor run 11, O2 limited, QC"	2	0	0	3	0	1	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM11_TR2_QC	lowO2_QC	"Fermentor run 11, O2 limited, QC"	2	0	0	3	0	1	0	1	
+lowCH4	lowCH4	5GB1_FM12_TR1	lowCH4	"Fermentor run 12, methane limited"	1	1	0	3	0	1	0	1	
+lowCH4	lowCH4	5GB1_FM12_TR1_QC	lowCH4_QC	"Fermentor run 12, methane limited, QC"	1	1	0	3	0	1	0	1	
+lowCH4	lowCH4	5GB1_FM12_TR2	lowCH4	"Fermentor run 12, methane limited"	1	1	0	3	0	1	0	1	
+lowCH4	lowCH4	5GB1_FM12_TR2_QC	lowCH4_QC	"Fermentor run 12, methane limited, QC"	1	1	0	3	0	1	0	1	
+lowCH4	lowCH4	5GB1_FM14_TR1	lowCH4	"Fermentor run 14, methane limited"	1	1	0	3	0	1	0	1	
+lowCH4	lowCH4	5GB1_FM14_TR1_QC	lowCH4_QC	"Fermentor run 14, methane limited, QC"	1	1	0	3	0	1	0	1	
+lowCH4	lowCH4	5GB1_FM14_TR2	lowCH4	"Fermentor run 14, methane limited"	1	1	0	3	0	1	0	1	
+lowCH4	lowCH4	5GB1_FM14_TR2_QC	lowCH4_QC	"Fermentor run 14, methane limited, QC"	1	1	0	3	0	1	0	1	
+MeOH	MeOH	5GB1_FM18_TR1_QC	MeOH_QC	"Fermentor run 18, methanol"	0	1	0	3	0	2	0	0	why ex?
+MeOH	MeOH	5GB1_FM18_TR2	MeOH	"Fermentor run 18, methanol"	0	1	0	3	0	2	0	1	
+MeOH	MeOH	5GB1_FM18_TR2_QC	MeOH_QC	"Fermentor run 18, methanol"	0	1	0	3	0	2	0	1	
+MeOH	MeOH	5GB1_FM18_TR3	MeOH	"Fermentor run 18, methanol"	0	1	0	3	0	2	0	1	
+MeOH	MeOH	5GB1_FM18_TR3_QC	MeOH_QC	"Fermentor run 18, methanol"	0	1	0	3	0	2	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM19_TR1	lowO2	"Fermentor run 19, O2 limited"	2	0	0	3	0	1	0	0	why ex?
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM19_TR1_QC	lowO2_QC	"Fermentor run 19, O2 limited, QC"	2	0	0	3	0	1	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM19_TR1_UW	lowO2	"Fermentor run 19, O2 limited"	2	0	0	3	0	1	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM19_TR3	lowO2	"Fermentor run 19, O2 limited"	2	0	0	3	0	1	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM19_TR3_QC	lowO2_QC	"Fermentor run 19, O2 limited, QC"	2	0	0	3	0	1	0	1	
+uMax	uMax	5GB1_FM20_TR1_QC	uMax_QC	"Fermentor run 20, uMax, QC"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM20_TR2_QC	uMax_QC	"Fermentor run 20, uMax"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM20_TR3	uMax	"Fermentor run 20, uMax"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM20_TR3_QC	uMax_QC	"Fermentor run 20, uMax, QC"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM20_TR3_UW	uMax	"Fermentor run 20, uMax"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM21_TR1	uMax	"Fermentor run 21, uMax"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM21_TR1_QC	uMax_QC	"Fermentor run 21, uMax, QC"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM21_TR2	uMax	"Fermentor run 21, uMax"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM21_TR2_QC	uMax_QC	"Fermentor run 21, uMax, QC"	2	1	0	3	0	2	0	1	
+uMax	uMax	5GB1_FM21_TR2_UW	uMax	"Fermentor run 21, uMax"	2	1	0	3	0	2	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM22_TR1	lowO2	"Fermentor run 22, O2 limited"	2	0	0	3	0	1	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM22_TR1_QC	lowO2_QC	"Fermentor run 22, O2 limited, QC"	2	0	0	3	0	1	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM22_TR3	lowO2	"Fermentor run 22, O2 limited"	2	0	0	3	0	1	0	0	why ex?
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM22_TR3_QC	lowO2_QC	"Fermentor run 22, O2 limited, QC"	2	0	0	3	0	1	0	1	
+lowO2_fast_growth	lowO2_fast_growth	5GB1_FM22_TR3_UW	lowO2	"Fermentor run 22, O2 limited"	2	0	0	3	0	1	0	1	
+MeOH	MeOH	5GB1_FM23_TR3	MeOH	"Fermentor run 23, methanol"	0	1	0	3	0	2	0	1	
+MeOH	MeOH	5GB1_FM23_TR3_QC	MeOH_QC	"Fermentor run 23, methanol"	0	1	0	3	0	2	0	1	
+Cu	NoCu	5GB1_FM34_T0_TR1_QC	CuT0_QC	"Fermentor run 34, Cu transition, T0 (before Cu) 5.15% FAME"	2	1	0	0	0	1	0	1	
+Cu	medCu	5GB1_FM34_T3_TR3_QC	CuT3_QC	"Fermentor run 34, Cu transition, T3hr (after Cu) 5.49% FAME"	2	1	0	2	0	2	0	1	
+Cu	highCu	5GB1_FM34_T4_TR3_QC	CuT4_QC	"Fermentor run 34, Cu transition, T4hr (after Cu) 5.12% FAME"	2	1	0	3	0	2	0	1	
+Cu	highCu	5GB1_FM34_T5_TR2_QC	CuT5_QC	"Fermentor run 34, Cu transition, T5hr (after Cu) 5.75% FAME"	2	1	0	3	0	2	0	1	
+Cu	highCu	5GB1_FM34_T6_TR3_QC	CuT6_QC	"Fermentor run 34, Cu transition, T6hr (after Cu) 5.71% FAME"	2	1	0	3	0	2	0	1	
+Cu	highCu	5GB1_FM34_T7_TR3_QC	CuT7_QC	"Fermentor run 34, Cu transition, T7hr (after Cu) 6.45% FAME"	2	1	0	3	0	2	0	1	
+Cu	highCu	5GB1_FM34_T8_TR1_QC	CuT8_QC	"Fermentor run 34, Cu transition, T8hr (after Cu) 6.20% FAME"	2	1	0	3	0	2	0	1	
+Cu	NoCu	5GB1_FM40_T0_TR1_QC	CuT0_QC	"Fermentor run 40, Cu transition, T0 (before Cu)"	2	1	0	0	0	1	0	1	
+Cu	NoCu	5GB1_FM40_T0m_TR2	CuT0m	"Fermentor run 40, Cu transition, T0m before Cu)"	2	1	0	0	0	1	0	1	
+Cu	lowCu	5GB1_FM40_T10m_TR3	CuT10m	"Fermentor run 40, Cu transition, T10m (after Cu)"	2	1	0	1	0	1	0	1	
+Cu	lowCu	5GB1_FM40_T10m_TR3_QC	CuT10m_QC	"Fermentor run 40, Cu transition, T10m (after Cu)"	2	1	0	1	0	1	0	1	
+Cu	medCu	5GB1_FM40_T150m_TR1_QC	CuT150m_QC	"Fermentor run 40, Cu transition, T150m (after Cu)"	2	1	0	2	0	2	0	1	
+Cu	medCu	5GB1_FM40_T150m_TR1_remake	CuT150m	"Fermentor run 40, Cu transition, T150m (after Cu)"	2	1	0	2	0	2	0	1	
+Cu	medCu	5GB1_FM40_T180m_TR1	CuT180m	"Fermentor run 40, Cu transition, T180m (after Cu)"	2	1	0	2	0	2	0	1	
+Cu	medCu	5GB1_FM40_T180m_TR1_QC	CuT180m_QC	"Fermentor run 40, Cu transition, T180m (after Cu)"	2	1	0	2	0	2	0	1	
+Cu	lowCu	5GB1_FM40_T20m_TR2	CuT20m	"Fermentor run 40, Cu transition, T20m (after Cu)"	2	1	0	1	0	1	0	1	
+Cu	lowCu	5GB1_FM40_T20m_TR2_QC	CuT20m_QC	"Fermentor run 40, Cu transition, T20m (after Cu)"	2	1	0	1	0	1	0	0	why ex?
+Cu	lowCu	5GB1_FM40_T40m_TR1	CuT40m	"Fermentor run 40, Cu transition, T40m (after Cu)"	2	1	0	1	0	1	0	1	
+Cu	lowCu	5GB1_FM40_T40m_TR1_QC	CuT40m_QC	"Fermentor run 40, Cu transition, T40m (after Cu)"	2	1	0	1	0	1	0	1	
+Cu	lowCu	5GB1_FM40_T60m_TR1	CuT60m	"Fermentor run 40, Cu transition, T60m (after Cu)"	2	1	0	1	0	1	0	1	
+Cu	lowCu	5GB1_FM40_T60m_TR1_QC	CuT60m_QC	"Fermentor run 40, Cu transition, T60m (after Cu)"	2	1	0	1	0	1	0	1	
+Cu	medCu	5GB1_FM40_T90m_TR2	CuT90m	"Fermentor run 40, Cu transition, T90m (after Cu)"	2	1	0	2	0	2	0	1	
+Cu	medCu	5GB1_FM40_T90m_TR2_QC	CuT90m_QC	"Fermentor run 40, Cu transition, T90m (after Cu)"	2	1	0	2	0	2	0	1	
+slow_growth	slow_growth	5GB1_FM58_Td20h_TR1_QC	ferm_Td20h_QC		2	1	0	3	0	0	0	0	should ex?
+slow_growth	slow_growth	5GB1_FM58_Td32h_TR3_QC	ferm_Td32h_QC		2	1	0	3	0	0	0	0	should ex?
+lowO2_slow_growth	lowO2_slow_growth	5GB1_FM69_t2_TR1	5GB1_FM69_t2		2	0	0	3	0	0	0	0	should ex?
+highO2_slow_growth	highO2_slow_growth	5GB1_FM69_t3_TR1	5GB1_FM69_t3	Fermentor run 69	2	1	0	3	0	0	0	1	
+highO2_slow_growth	highO2_slow_growth	5GB1_FM69_t3_TR1_UW	5GB1_FM69_t3		2	1	0	3	0	0	0	1	
+highO2_slow_growth	highO2_slow_growth	5GB1_FM69_t4_TR1	5GB1_FM69_t4	Fermentor run 69	2	1	0	3	0	0	0	1	
+highO2_slow_growth	highO2_slow_growth	5GB1_FM69_t4_TR1_UW	5GB1_FM69_t4		2	1	0	3	0	0	0	1	
+NO3	NO3_lowO2_slow_growth	5GB1_FM80_t2_TR1	5GB1_FM80_t2	Fermentor run 80	2	0	1	3	0	0	0	1	
+NO3	NO3_lowO2_slow_growth	5GB1_FM80_t4_TR1	5GB1_FM80_t4	Fermentor run 80	2	0	1	3	0	0	0	1	
+NO3	NO3_lowO2_slow_growth	5GB1_FM81_t1_TR3	5GB1_FM81_t1	Fermentor run 81	2	0	1	3	0	0	0	1	
+NO3	NO3_lowO2_slow_growth	5GB1_FM81_t2_TR3	5GB1_FM81_t2	Fermentor run 81	2	0	1	3	0	0	0	1	
+LanzaTech	LanzaTech	5GB1_LTrecycle_TR1	LTrecycle	LanzaTech Cell recycle	-1	-1	-1	-1	-1	-1	-1	0	other exp
+LanzaTech	LanzaTech	5GB1_LTrecycle_TR1_QC	LTrecycle_QC	LanzaTech Cell recycle	-1	-1	-1	-1	-1	-1	-1	0	other exp
+Lanthanum	WithLanthanum	5GB1_vial_wLa_TR3	5GB1_vial_wLa		2	1	0	3	1	2	1	1	
+Lanthanum	NoLanthanum	5GB1_vial_woLa_TR2	5GB1_vial_woLa		2	1	0	3	0	2	1	1	
+unknown	unknown	5GB1C_latelog_vial_TR2_QC	ferm_latelog_vial_QC		-1	-1	-1	-1	-1	-1	-1	0	not enough info
+unknown	unknown	br1_QC	br_QC	"Bioreactor, no additional culture information available, extraction at HTGC, unknown run type - DO NOT USE"	-1	-1	-1	-1	-1	-1	-1	0	not enough info
+unknown	unknown	br2_QC	br_QC	"Bioreactor, no additional culture information available extraction at HTGC, unknown run type - DO NOT USE"	-1	-1	-1	-1	-1	-1	-1	0	not enough info
+unknown	unknown	ribo0	ribo0	"Test sample, depleted with ribo-zero, unknown culture conditions, unknown run type"	-1	-1	-1	-1	-1	-1	-1	0	not enough info
+unknown	unknown	total	totalRNA	"Test sample, total RNA (no depletion), unknown culture conditions, unknown run type"	-1	-1	-1	-1	-1	-1	-1	0	not enough info
+aa3_KO	aa3_KO	5GB1_FM_85_TR1	5GB1_FM_85	Fermentor run 85	2	1	0	3	0	2	0	0	other exp
+aa3_KO	aa3_KO	5GB1_FM_85_TR2	5GB1_FM_85	Fermentor run 85	2	1	0	3	0	2	0	0	other exp
+WT_control	WT_control	5GB1_FM_86_TR1	5GB1_FM_86	Fermentor run 86	2	1	0	3	0	2	0	0	other exp
+WT_control	WT_control	5GB1_FM_87_TR1	5GB1_FM_87	Fermentor run 87	2	1	0	3	0	2	0	0	other exp
+aa3_KO	aa3_KO	5GB1c_aa3_1	5GB1_FM_88	Fermentor run 88	2	1	0	3	0	2	0	0	other exp
+aa3_KO	aa3_KO	5GB1c_aa3_2	5GB1_FM_90	Fermentor run 90	2	1	0	3	0	2	0	0	other exp
+WT_control	WT_control	5GB1c_OD_0_4_vial_1	5GB1c_OD_0_4_vial	Vial sample in mid-exponential phase	2	1	0	3	0	2	1	0	other exp
+WT_control	WT_control	5GB1c_OD_0_4_vial_2	5GB1c_OD_0_4_vial	Vial sample in mid-exponential phase	2	1	0	3	0	2	1	0	other exp
+crotonic_acid	crotonic_acid	5GB1_pA9_red	5GB1_pA9	Vial sample producing crotonic acid	2	1	0	3	0	2	1	0	other exp
+crotonic_acid	crotonic_acid	5GB1_pA9_yellow	5GB1_pA9	Vial sample producing crotonic acid	2	1	0	3	0	2	1	0	other exp
+Lanthanum	WithLanthanum	5GB1C-5G-La-BR1	La_rep1	Vial sample in mid- to late-exponential phase	2	1	0	3	1	2	1	1	
+Lanthanum	WithLanthanum	5GB1C-5G-La-BR2	La_rep2	Vial sample in mid- to late-exponential phase	2	1	0	3	1	2	1	1	
+Lanthanum	NoLanthanum	5GB1C-5G-N-BR1	NoLa_rep1	Vial sample in mid- to late-exponential phase	2	1	0	3	0	2	1	1	
+Lanthanum	NoLanthanum	5GB1C-5G-N-BR2	NoLa_rep2	Vial sample in mid- to late-exponential phase	2	1	0	3	0	2	1	1	
+Lanthanum	WithLanthanum	5GB1C-JG15-La-BR1	deltaTBDT_La_rep1	Vial sample in mid- to late-exponential phase	2	1	0	3	1	2	1	1	
+Lanthanum	WithLanthanum	5GB1C-JG15-La-BR2	deltaTBDT_La_rep2	Vial sample in mid- to late-exponential phase	2	1	0	3	1	2	1	1	
+Lanthanum	NoLanthanum	5GB1C-JG15-N-BR1	deltaTBDT_NoLa_rep1	Vial sample in mid- to late-exponential phase	2	1	0	3	0	2	1	1	
+Lanthanum	NoLanthanum	5GB1C-JG15-N-BR2	deltaTBDT_NoLa_rep2	Vial sample in mid- to late-exponential phase	2	1	0	3	0	2	1	1	
