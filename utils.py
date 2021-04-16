@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 from override import GENE_NAME_OVERRIDE, GENE_PRODUCT_OVERRIDE, SYS_LOOKUP
 
 def load_promoter_seqs(filename):
@@ -70,4 +73,19 @@ def get_gene_means_by_condition(df,samples,sample2condition):
 
     return df_means
     
+def one_hot_encode(seq):
+    #print("one hot encoding...")
+    
+    # Dictionary returning one-hot encoding of nucleotides. 
+    nuc_d = {'A':[1.0,0.0,0.0,0.0],
+             'C':[0.0,1.0,0.0,0.0],
+             'G':[0.0,0.0,1.0,0.0],
+             'T':[0.0,0.0,0.0,1.0],
+             'N':[0.0,0.0,0.0,0.0]}
+    
+    # Creat empty matrix.
+    #vec=torch.tensor([nuc_d[x] for x in seq])
+    vec=np.array([nuc_d[x] for x in seq]).flatten()
+        
+    return vec
     
