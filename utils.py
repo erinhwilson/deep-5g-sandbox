@@ -167,12 +167,20 @@ def build_dataloaders_single(df, seq_encoding="oh",target_col="score",batch_size
     return train_dl, test_dl, train_df, test_df
 
 
-def loss_batch(model, loss_func, xb, yb, opt=None):
+def loss_batch(model, loss_func, xb, yb, opt=None,verbose=False):
     '''
     Apply loss function to a batch of inputs. If no optimizer
     is provided, skip the back prop step.
     '''
-    loss = loss_func(model(xb.float()), yb.float())
+    if verbose:
+        print('loss batch ****')
+        print("xb shape:",xb.shape)
+        print("yb shape:",yb.shape)
+
+    xb_out = model(xb.float())
+    if verbose:
+        print("model out pre loss", xb_out.shape)
+    loss = loss_func(xb_out, yb.float())
 
     if opt is not None:
         loss.backward()
@@ -250,12 +258,14 @@ def quick_loss_plot(data_label):
     plt.xlabel("Epoch")
     plt.show()
     
-def quick_seq_pred(model, seqs):
+def quick_seq_pred(model, seqs, oracle):
     '''Given some sequences, get the model's predictions '''
     for dna in seqs:
         s = torch.tensor(one_hot_encode(dna))
         pred = model(s.float())
-        print(dna, pred.item())
+        actual = oracle[dna]
+        diff = actual - pred.item()
+        print(f"{dna}: pred:{pred.item():.3f} actual:{actual:.3f} ({diff:.3f})")
 
 
 def get_conv_layers_from_model(model):
