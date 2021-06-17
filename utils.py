@@ -1,3 +1,4 @@
+import altair as alt
 import copy
 import logomaker
 import math
@@ -268,6 +269,7 @@ def quick_seq_pred(model, seqs, oracle):
         print(f"{dna}: pred:{pred.item():.3f} actual:{actual:.3f} ({diff:.3f})")
 
 
+
 def get_conv_layers_from_model(model):
     '''
     Given a trained model, extract its convolutional layers
@@ -409,3 +411,48 @@ def view_filters_and_logos(model_weights,filter_activations, num_cols=8):
         ax2.set_title(f"Filter {i}")
 
     plt.tight_layout()
+
+
+
+def parity_plot(model,df, pearson):
+    plt.scatter(df['pred'].values, df['truth'].values, alpha=0.2)
+    plt.xlabel("Predicted Score",fontsize=14)
+    plt.ylabel("Actual Score",fontsize=14)
+    plt.title(f"{model} (pearson:{pearson:.3f})",fontsize=20)
+    plt.show()
+    
+def alt_parity_plot(model,df, pearson,task):
+    chart = alt.Chart(df).mark_circle(opacity=0.2).encode(
+        alt.X('pred:Q'),
+        alt.Y('truth:Q'),
+        tooltip=['seq:N']
+    ).properties(
+        title=f'Model (pearson:{pearson})'
+    ).interactive()
+    
+    chart.save(f'alt_out/parity_plot_{task}_{model}.html')
+    
+
+def parity_pred(models, seqs, oracle,task,alt=True):
+    '''Given some sequences, get the model's predictions '''
+    dfs = {} # key: model name, value: parity_df
+    
+    
+    for model_name,model in models:
+        print(f"Running {model_name}")
+        data = []
+        for dna in seqs:
+            s = torch.tensor(one_hot_encode(dna))
+            actual = oracle[dna]
+            pred = model(s.float())
+            data.append([dna,actual,pred.item()])
+        df = pd.DataFrame(data, columns=['seq','truth','pred'])
+        pearson = df['truth'].corr(df['pred'])
+        dfs[model_name] = (pearson,df)
+        
+        #plot parity plot
+        if alt: # make an altair plot
+            alt_parity_plot(model_name, df, pearson,task)
+        parity_plot(model_name, df, pearson)
+
+    return dfs
