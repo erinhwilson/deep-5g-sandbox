@@ -96,7 +96,7 @@ def one_hot_encode(seq):
     
     # Creat empty matrix.
     #vec=torch.tensor([nuc_d[x] for x in seq])
-    vec=np.array([nuc_d[x] for x in seq]).flatten()
+    vec=np.array([nuc_d[x] for x in seq])#.flatten()
         
     return vec
     
@@ -262,7 +262,7 @@ def quick_loss_plot(data_label):
 def quick_seq_pred(model, seqs, oracle):
     '''Given some sequences, get the model's predictions '''
     for dna in seqs:
-        s = torch.tensor(one_hot_encode(dna))
+        s = torch.tensor(one_hot_encode(dna)).unsqueeze(0)
         pred = model(s.float())
         actual = oracle[dna]
         diff = actual - pred.item()
@@ -328,7 +328,8 @@ def get_conv_output_for_seq(seq, conv_layer):
     '''
     print(f"Running seq {seq}")
     # format seq for input to conv layer (OHE, reshape)
-    seq = torch.tensor(one_hot_encode(seq)).view(-1,len(seq),4).permute(0,2,1)
+    seq = torch.tensor(one_hot_encode(seq))#.view(-1,len(seq),4).permute(0,2,1)
+    # OHE FIX??
     
     # run through conv layer
     with torch.no_grad(): # don't want as part of gradient graph?
@@ -363,7 +364,9 @@ def get_filter_activations(seqs, conv_layer):
             # get subsequences that caused filter to activate
             for pos in activated_positions:
                 subseq = seq[pos:pos+filt_width]
-                subseq_tensor = torch.tensor(one_hot_encode(subseq)).view(-1,filt_width,4).permute(0,2,1).squeeze(0)
+                #subseq_tensor = torch.tensor(one_hot_encode(subseq)).view(-1,filt_width,4).permute(0,2,1).squeeze(0)
+                subseq_tensor = torch.tensor(one_hot_encode(subseq)).permute(0,2,1).squeeze(0)
+                # OHE FIX??
                 
                 # add this subseq to the pwm count for this filter
                 filter_pwms[filt_id] += subseq_tensor
@@ -442,7 +445,7 @@ def parity_pred(models, seqs, oracle,task,alt=True):
         print(f"Running {model_name}")
         data = []
         for dna in seqs:
-            s = torch.tensor(one_hot_encode(dna))
+            s = torch.tensor(one_hot_encode(dna))#.unsqueeze(0)
             actual = oracle[dna]
             pred = model(s.float())
             data.append([dna,actual,pred.item()])
