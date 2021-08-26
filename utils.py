@@ -94,7 +94,7 @@ def one_hot_encode(seq):
              'T':[0.0,0.0,0.0,1.0],
              'N':[0.0,0.0,0.0,0.0]}
     
-    # Creat empty matrix.
+    # Create empty matrix.
     #vec=torch.tensor([nuc_d[x] for x in seq])
     vec=np.array([nuc_d[x] for x in seq])#.flatten()
         
