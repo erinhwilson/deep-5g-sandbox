@@ -419,6 +419,11 @@ def view_filters_and_logos(model_weights,filter_activations, num_cols=8):
 
 def parity_plot(model,df, pearson):
     plt.scatter(df['pred'].values, df['truth'].values, alpha=0.2)
+    
+    # y=x line
+    xpoints = ypoints = plt.xlim()
+    plt.plot(xpoints, ypoints, linestyle='--', color='k', lw=2, scalex=False, scaley=False)
+
     plt.xlabel("Predicted Score",fontsize=14)
     plt.ylabel("Actual Score",fontsize=14)
     plt.title(f"{model} (pearson:{pearson:.3f})",fontsize=20)
