@@ -247,7 +247,22 @@ def make_lr_melt_df(lr_df,conds,neutral_filt=False):
     return lr_cu_melt
 
 
+def make_XY_df(df,conds,loc2seq, op_leads, op_filt=True):
+    '''
+    For a particular df and a set of conditions, add the upstream
+    sequence to each gene and filter to only the set of conditions.
+    
+    By default, filter out genes possibly inside operons (not in op_leads)
+    '''
+    XYdf = df.reset_index()
+    XYdf['upstream_region'] = XYdf['locus_tag'].apply(lambda x: loc2seq[x])
+    XYdf = XYdf[['locus_tag','upstream_region']+conds]
+    
+    # filter out genes likely to be inside operons
+    if op_filt:
+        XYdf = XYdf[XYdf['locus_tag'].isin(op_leads)]
 
+    return XYdf.reset_index().rename(columns={'index':'og_index'})
 
 
 
