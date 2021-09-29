@@ -69,8 +69,6 @@ class DatasetSpec():
         
         self.id = self.name if not k else f"{self.name}_{k}"
 
-
-
 # +-----------------------+
 # | Dataloaders functions |
 # +-----------------------+
@@ -95,7 +93,6 @@ def quick_split(df, split_frac=0.8, verbose=False):
     test_df = df[df.index.isin(test_idxs)]
         
     return train_df, test_df
-
 
 def build_dataloaders_single(df, 
                              ds_specs,
@@ -225,7 +222,7 @@ def fit(epochs, model, loss_func, opt, train_dl, test_dl):
     
     # loops through epochs
     for epoch in range(epochs):
-    	# train step
+        # train step
         train_loss = train_step(model, train_dl, loss_func, opt)
         train_losses.append(train_loss)
         
@@ -270,10 +267,10 @@ def quick_seq_pred(model, seqs, oracle):
 
 
 def parity_plot(model_name,df, pearson):
-	'''
-	Given a dataframe of samples with their true and predicted values,
-	make a scatterplot.
-	'''
+    '''
+    Given a dataframe of samples with their true and predicted values,
+    make a scatterplot.
+    '''
     plt.scatter(df['pred'].values, df['truth'].values, alpha=0.2)
     
     # y=x line
@@ -286,9 +283,9 @@ def parity_plot(model_name,df, pearson):
     plt.show()
     
 def alt_parity_plot(model,df, pearson,task):
-	'''
-	Make an interactive parity plot with altair
-	'''
+    '''
+    Make an interactive parity plot with altair
+    '''
     chart = alt.Chart(df).mark_circle(opacity=0.2).encode(
         alt.X('pred:Q'),
         alt.Y('truth:Q'),
