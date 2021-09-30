@@ -281,6 +281,7 @@ def parity_plot(model_name,df, pearson):
     xpoints = ypoints = plt.xlim()
     plt.plot(xpoints, ypoints, linestyle='--', color='k', lw=2, scalex=False, scaley=False)
 
+    plt.ylim(xpoints)
     plt.ylabel("Predicted Score",fontsize=14)
     plt.xlabel("Actual Score",fontsize=14)
     plt.title(f"{model_name} (pearson:{pearson:.3f})",fontsize=20)
@@ -329,7 +330,7 @@ def quick_loss_plot(data_label_list):
     '''
     For each train/test loss trajectory, plot loss by epoch
     '''
-    for (train_data,test_data),label in data_label_list:
+    for i,((train_data,test_data),label) in enumerate(data_label_list):
         plt.plot(train_data,linestyle='--',color=f"C{i}", label=f"{label} Train")
         plt.plot(test_data,color=f"C{i}", label=f"{label} Test")
 
