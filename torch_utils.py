@@ -21,8 +21,8 @@ class SeqDatasetOHE(Dataset):
     '''
     Multi-task for one-hot-encoded sequences
     '''
-    def __init__(self,df,target_col='score'):
-        self.seqs = list(df['seq'].values)
+    def __init__(self,df,seq_col='seq',target_col='score'):
+        self.seqs = list(df[seq_col].values)
         self.seq_len = len(self.seqs[0])
         
         self.ohe_seqs = torch.stack([torch.tensor(u.one_hot_encode(x)) for x in self.seqs])
@@ -41,12 +41,12 @@ class SeqDatasetKmer(Dataset):
     '''
     Multi-task for k-mer vector sequences
     '''
-    def __init__(self,df,k=3,target_col='score'):
-        self.seqs = list(df['seq'].values)
+    def __init__(self,df,k=3,seq_col='seq',target_col='score'):
+        self.seqs = list(df[seq_col].values)
         self.seq_len = len(self.seqs[0])
-        self.kmers = kmers(k)
+        self.kmers = u.kmers(k)
         
-        self.kmer_vecs = torch.stack([torch.tensor(count_kmers_in_seq(x,self.kmers)) for x in self.seqs])
+        self.kmer_vecs = torch.stack([torch.tensor(u.count_kmers_in_seq(x,self.kmers)) for x in self.seqs])
     
         self.labels = torch.tensor(list(df[target_col].values)).unsqueeze(1)
         
@@ -78,6 +78,7 @@ def quick_split(df, split_frac=0.8, verbose=False):
     Given a df of samples, randomly split indices between
     train and test at the desired fraction
     '''
+    df = df.reset_index()
 
     # shuffle indices
     idxs = list(range(df.shape[0]))
@@ -94,10 +95,13 @@ def quick_split(df, split_frac=0.8, verbose=False):
         
     return train_df, test_df
 
-def build_dataloaders_single(df, 
+def build_dataloaders_single(train_df,
+                             test_df, 
                              ds_specs,
+                             seq_col='seq',
                              target_col="score",
-                             batch_size=32
+                             batch_size=128,
+                             split_frac=0.8
                             ):
     '''
     Given a df, split into train and test, and encode the sequence for modeling 
@@ -106,7 +110,7 @@ def build_dataloaders_single(df,
     '''
     
     # split
-    train_df, test_df = u.quick_split(df)
+    #train_df, test_df = u.quick_split(df,split_frac=split_frac)
     
     dls = {} # collect data loaders
     
@@ -117,13 +121,13 @@ def build_dataloaders_single(df,
                 raise ValueError(f"To use SeqDatasetKmer, you must specify an integer value for k in DatasetSpec")
             assert(type(ds.k) == int)
             
-            train_ds = SeqDatasetKmer(train_df, ds.k)
-            test_ds = SeqDatasetKmer(test_df, ds.k)
+            train_ds = SeqDatasetKmer(train_df, ds.k,seq_col=seq_col,target_col=target_col)
+            test_ds = SeqDatasetKmer(test_df, ds.k,seq_col=seq_col,target_col=target_col)
             
         # One-hot encoding
         elif ds.name == 'ohe':
-            train_ds = SeqDatasetOHE(train_df)
-            test_ds = SeqDatasetOHE(test_df)
+            train_ds = SeqDatasetOHE(train_df,seq_col=seq_col,target_col=target_col)
+            test_ds = SeqDatasetOHE(test_df,seq_col=seq_col,target_col=target_col)
             
         # unknown datatype?
         else:
@@ -134,7 +138,7 @@ def build_dataloaders_single(df,
         test_dl = DataLoader(test_ds, batch_size=batch_size * 2)
         dls[ds.id] = (train_dl,test_dl)
     
-    return train_df, test_df, dls
+    return dls
 
 
 # +--------------------------------+
@@ -165,7 +169,7 @@ def loss_batch(model, loss_func, xb, yb, opt=None,verbose=False):
     return loss.item(), len(xb)
 
 
-def train_step(model, train_dl, loss_func, opt):
+def train_step(model, train_dl, loss_func, device, opt):
     '''
     Execute 1 set of batched training within an epoch
     '''
@@ -187,7 +191,7 @@ def train_step(model, train_dl, loss_func, opt):
     
     return train_loss
 
-def test_step(model, test_dl, loss_func):
+def test_step(model, test_dl, loss_func, device):
     '''
     Execute 1 set of batched validation within an epoch
     '''
@@ -210,7 +214,7 @@ def test_step(model, test_dl, loss_func):
     return test_loss
 
 
-def fit(epochs, model, loss_func, opt, train_dl, test_dl):
+def fit(epochs, model, loss_func, opt, train_dl, test_dl, device):
     '''
     Fit the model params to the training data, eval on unseen data.
     Loop for a number of epochs and keep train of train and test losses 
@@ -223,18 +227,18 @@ def fit(epochs, model, loss_func, opt, train_dl, test_dl):
     # loops through epochs
     for epoch in range(epochs):
         # train step
-        train_loss = train_step(model, train_dl, loss_func, opt)
+        train_loss = train_step(model, train_dl, loss_func, device, opt)
         train_losses.append(train_loss)
         
         # test step
-        test_loss = test_step(model, test_dl, loss_func)
+        test_loss = test_step(model, test_dl, loss_func, device)
         print(epoch, test_loss)
         test_losses.append(test_loss)
 
     return train_losses, test_losses
 
 
-def run_model(train_dl,test_dl, model, lr=0.01, epochs=20):
+def run_model(train_dl,test_dl, model, device,lr=0.01, epochs=20):
     '''
     Given data and a model type, run dataloaders with MSE loss and SGD opt
     '''
@@ -243,7 +247,7 @@ def run_model(train_dl,test_dl, model, lr=0.01, epochs=20):
     optimizer = torch.optim.SGD(model.parameters(), lr=lr) 
     
     # run the training loop
-    train_losses, test_losses = fit(epochs, model, loss_func, optimizer, train_dl, test_dl)
+    train_losses, test_losses = fit(epochs, model, loss_func, optimizer, train_dl, test_dl, device)
     
     #return model, train_losses, test_losses
     return train_losses, test_losses
@@ -271,14 +275,14 @@ def parity_plot(model_name,df, pearson):
     Given a dataframe of samples with their true and predicted values,
     make a scatterplot.
     '''
-    plt.scatter(df['pred'].values, df['truth'].values, alpha=0.2)
+    plt.scatter(df['truth'].values, df['pred'].values, alpha=0.2)
     
     # y=x line
     xpoints = ypoints = plt.xlim()
     plt.plot(xpoints, ypoints, linestyle='--', color='k', lw=2, scalex=False, scaley=False)
 
-    plt.xlabel("Predicted Score",fontsize=14)
-    plt.ylabel("Actual Score",fontsize=14)
+    plt.ylabel("Predicted Score",fontsize=14)
+    plt.xlabel("Actual Score",fontsize=14)
     plt.title(f"{model_name} (pearson:{pearson:.3f})",fontsize=20)
     plt.show()
     

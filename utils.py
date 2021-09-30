@@ -2,6 +2,7 @@ import altair as alt
 import copy
 #import logomaker
 #import math
+from itertools import product
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -154,6 +155,15 @@ def downselect_list(l,n):
     random.shuffle(l2)
     # return n of the shuffled list
     return l2[:n]
+
+def kmers(k):
+    return [''.join(x) for x in product(['A','C','G','T'], repeat=k)]
+
+def count_kmers_in_seq(seq, mers):
+    '''
+    For a given sequence and kmer set, return the count
+    '''
+    return [seq.count(mer) for mer in mers]
 
 
 # +------------------------------+
