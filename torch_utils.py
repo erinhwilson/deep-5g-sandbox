@@ -101,7 +101,9 @@ def build_dataloaders_single(train_df,
                              seq_col='seq',
                              target_col="score",
                              batch_size=128,
-                             split_frac=0.8
+                             split_frac=0.8,
+                             sampler=None,
+                             shuffle=True
                             ):
     '''
     Given a df, split into train and test, and encode the sequence for modeling 
@@ -134,7 +136,7 @@ def build_dataloaders_single(train_df,
             raise ValueError(f"Unknown Dataset Type {ds.name}.")
 
         # Put DataSets into DataLoaders
-        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle,sampler=sampler)
         test_dl = DataLoader(test_ds, batch_size=batch_size * 2)
         dls[ds.id] = (train_dl,test_dl)
     
