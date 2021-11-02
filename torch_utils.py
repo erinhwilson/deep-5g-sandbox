@@ -328,16 +328,21 @@ def parity_pred(models, seqs, oracle,task,alt=True):
 
     return dfs
 
-def quick_loss_plot(data_label_list):
+def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0):
     '''
     For each train/test loss trajectory, plot loss by epoch
     '''
     for i,((train_data,test_data),label) in enumerate(data_label_list):
+        # plot only 1 in every sparse_n points
+        if sparse_n:
+            train_data = [x for i,x in enumerate(train_data) if (i%sparse_n==0)]
+            test_data = [x for i,x in enumerate(test_data) if (i%sparse_n==0)]
+            
         plt.plot(train_data,linestyle='--',color=f"C{i}", label=f"{label} Train")
-        plt.plot(test_data,color=f"C{i}", label=f"{label} Test")
+        plt.plot(test_data,color=f"C{i}", label=f"{label} Test",linewidth=3.0)
 
     plt.legend()
-    plt.ylabel("MSE loss")
+    plt.ylabel(loss_type)
     plt.xlabel("Epoch")
     plt.show()
 
