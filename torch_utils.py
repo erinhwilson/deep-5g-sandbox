@@ -332,18 +332,21 @@ def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0):
     '''
     For each train/test loss trajectory, plot loss by epoch
     '''
-    for i,((train_data,test_data),label) in enumerate(data_label_list):
+    for i,((train_data,test_data),label,epoch_stop) in enumerate(data_label_list):
         # plot only 1 in every sparse_n points
         if sparse_n:
             train_data = [x for i,x in enumerate(train_data) if (i%sparse_n==0)]
             test_data = [x for i,x in enumerate(test_data) if (i%sparse_n==0)]
+            epoch_stop = epoch_stop/sparse_n
             
-        plt.plot(train_data,linestyle='--',color=f"C{i}", label=f"{label} Train")
+        plt.plot(train_data,linestyle='dotted',color=f"C{i}", label=f"{label} Train")
         plt.plot(test_data,color=f"C{i}", label=f"{label} Test",linewidth=3.0)
+        plt.axvline(x=epoch_stop,c=f"C{i}",linestyle='--')
 
     plt.legend()
     plt.ylabel(loss_type)
     plt.xlabel("Epoch")
+    plt.legend(bbox_to_anchor=(1,1),loc='upper left')
     plt.show()
 
 
