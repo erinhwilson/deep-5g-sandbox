@@ -11,8 +11,12 @@ random.seed(7)
 import torch
 from torch.utils.data import Dataset,DataLoader #,TensorDataset
 from torch import nn
+from torch.utils.data.sampler import WeightedRandomSampler
+
 
 import utils as u
+# import EarlyStopping
+from pytorchtools import EarlyStopping
 
 # +------------------------+
 # | Custom Dataset classes |
@@ -95,6 +99,37 @@ def quick_split(df, split_frac=0.8, verbose=False):
         
     return train_df, test_df
 
+def stratified_partition(df, cpd,class_col='reg'):
+    '''
+    Given a specification for how to split specific classes into 
+    train-test and train-val, implement those splits independently 
+    and return final dfs for train/test/val splits
+    '''
+    
+    # make sure classes and CPD specs match
+    assert set(cpd.keys()) == set(df[class_col].unique())
+    
+    final_full_train = pd.DataFrame(columns=df.columns)
+    final_test = pd.DataFrame(columns=df.columns)
+    final_train = pd.DataFrame(columns=df.columns)
+    final_val = pd.DataFrame(columns=df.columns)
+
+    # for class in class_partition_dict
+    for c in cpd:
+        temp_df = df[df[class_col]==c]
+        print(f"class {c}: {temp_df.shape[0]} examples")
+        full_train,test = quick_split(temp_df, split_frac=cpd[c]['train_test'])
+        train,val = quick_split(full_train, split_frac=cpd[c]['train_val'])
+        
+        final_full_train = pd.concat([final_full_train, full_train])
+        final_test = pd.concat([final_test, test])
+        final_train = pd.concat([final_train, train])
+        final_val = pd.concat([final_val, val])
+        
+    return final_full_train, final_test, final_train, final_val
+
+
+
 def build_dataloaders_single(train_df,
                              test_df, 
                              ds_specs,
@@ -142,6 +177,46 @@ def build_dataloaders_single(train_df,
     
     return dls
 
+# +-------------------------------------------+
+# | Classification group assignment functions |
+# +-------------------------------------------+
+
+def set_reg_class_up_down(df, col,thresh=1.0):
+    '''
+    Given a dataframe of log ratio TPMS, add a column splitting genes into categories
+    * Below -thresh: class 0
+    * Between -thresh:thresh: class 1
+    * Above thresh: class 2
+    '''
+    def get_class(val):
+        if val < -thresh:
+            return 0
+        elif val > thresh:
+            return 2
+        else:
+            return 1
+    
+    reg_col = f"{col}_reg_UD"
+    df[reg_col] = df[col].apply(lambda x: get_class(x))
+    
+def set_reg_class_yes_no(df, col,thresh=1.0):
+    '''
+    Given a dataframe of log ratio TPMS, add a column splitting genes into categories
+    * Below -thresh: class 0
+    * Between -thresh:thresh: class 1
+    * Above thresh: class 0
+    '''
+    def get_class(val):
+        if val < -thresh:
+            return 0
+        elif val > thresh:
+            return 0
+        else:
+            return 1
+    
+    reg_col = f"{col}_reg_YN"
+    df[reg_col] = df[col].apply(lambda x: get_class(x))
+
 
 # +--------------------------------+
 # | Training and fitting functions |
@@ -156,13 +231,22 @@ def loss_batch(model, loss_func, xb, yb, opt=None,verbose=False):
         print('loss batch ****')
         print("xb shape:",xb.shape)
         print("yb shape:",yb.shape)
+        print("yb shape:",yb.squeeze(1).shape)
+        #print("yb",yb)
 
     xb_out = model(xb.float())
     if verbose:
         print("model out pre loss", xb_out.shape)
-    loss = loss_func(xb_out, yb.float())
+        #print('xb_out', xb_out)
+        print("xb_out:",xb_out.shape)
+        print("yb:",yb.shape)
+        print("yb.long:",yb.long().shape)
+    
+    #loss = loss_func(xb_out, yb.float()) # for MSE/regression
+    loss = loss_func(xb_out, yb.long().squeeze(1))
+    # ^^ changes for CrossEntropyLoss...
 
-    if opt is not None:
+    if opt is not None: # if opt
         loss.backward()
         opt.step()
         opt.zero_grad()
@@ -193,66 +277,132 @@ def train_step(model, train_dl, loss_func, device, opt):
     
     return train_loss
 
-def test_step(model, test_dl, loss_func, device):
+def val_step(model, val_dl, loss_func, device):
     '''
     Execute 1 set of batched validation within an epoch
     '''
     # Set model to Evaluation mode
     model.eval()
     with torch.no_grad():
-        tl = [] # test losses
+        vl = [] # val losses
         ns = [] # batch sizes
-        for xb, yb in test_dl:
+        for xb, yb in val_dl:
             # put on GPU
             xb, yb = xb.to(device),yb.to(device)
 
-            t, n = loss_batch(model, loss_func, xb, yb)
-            tl.append(t)
+            v, n = loss_batch(model, loss_func, xb, yb)
+            vl.append(v)
             ns.append(n)
 
     # average the losses over all batches
-    test_loss = np.sum(np.multiply(tl, ns)) / np.sum(ns)
+    val_loss = np.sum(np.multiply(vl, ns)) / np.sum(ns)
     
-    return test_loss
+    return val_loss
 
 
-def fit(epochs, model, loss_func, opt, train_dl, test_dl, device):
+# def fit(epochs, model, loss_func, opt, train_dl, test_dl, device):
+#     '''
+#     Fit the model params to the training data, eval on unseen data.
+#     Loop for a number of epochs and keep train of train and test losses 
+#     along the way
+#     '''
+#     # keep track of losses
+#     train_losses = []    
+#     test_losses = []
+    
+#     # loops through epochs
+#     for epoch in range(epochs):
+#         # train step
+#         train_loss = train_step(model, train_dl, loss_func, device, opt)
+#         train_losses.append(train_loss)
+        
+#         # test step
+#         test_loss = test_step(model, test_dl, loss_func, device)
+#         print(epoch, test_loss)
+#         test_losses.append(test_loss)
+
+#     return train_losses, test_losses
+
+def fit(epochs, model, loss_func, opt, train_dl, val_dl,device,patience=1000):
     '''
     Fit the model params to the training data, eval on unseen data.
-    Loop for a number of epochs and keep train of train and test losses 
+    Loop for a number of epochs and keep train of train and val losses 
     along the way
     '''
     # keep track of losses
     train_losses = []    
-    test_losses = []
+    val_losses = []
+    
+    # create early stopping object
+    early_stopping = EarlyStopping(patience=patience, verbose=False)
     
     # loops through epochs
-    for epoch in range(epochs):
-        # train step
-        train_loss = train_step(model, train_dl, loss_func, device, opt)
-        train_losses.append(train_loss)
-        
-        # test step
-        test_loss = test_step(model, test_dl, loss_func, device)
-        print(epoch, test_loss)
-        test_losses.append(test_loss)
-
-    return train_losses, test_losses
+    #for epoch in range(epochs): #tqdm?
+    with tqdm.trange(epochs) as pbar:
+        for i in pbar:
+            train_loss = train_step(model, train_dl, loss_func, device,opt)
+            train_losses.append(train_loss)
 
 
-def run_model(train_dl,test_dl, model, device,lr=0.01, epochs=20):
+            val_loss = val_step(model, val_dl, loss_func, device)
+            #print(epoch, val_loss)
+            val_losses.append(val_loss)
+            
+            pbar.set_description(f"E:{i} | train loss:{train_loss:.3f} | val loss: {val_loss:.3f}")
+            
+            # copied from https://github.com/Bjarten/early-stopping-pytorch/blob/master/MNIST_Early_Stopping_example.ipynb
+            # early_stopping needs the validation loss to check if it has decresed, 
+            # and if it has, it will make a checkpoint of the current model
+            early_stopping(val_loss, model,i)
+
+            if early_stopping.early_stop:
+                print("Early stopping")
+                break
+    
+    # Epoch and value of best model checkpoint
+    estop = early_stopping.best_model_epoch
+    best_val_score = early_stopping.val_loss_min 
+
+    # load the last checkpoint with the best model
+    model.load_state_dict(torch.load('checkpoint.pt'))
+    # ^^ Does this need to be returned? I dont' think so... loads in place
+
+    return train_losses, val_losses,estop,best_val_score
+
+
+def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20):
     '''
     Given data and a model type, run dataloaders with MSE loss and SGD opt
     '''
-    # define loss func and optimizer
-    loss_func = torch.nn.MSELoss() 
+    # define optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=lr) 
     
     # run the training loop
-    train_losses, test_losses = fit(epochs, model, loss_func, optimizer, train_dl, test_dl, device)
-    
+    #train_losses, test_losses = fit(epochs, model, loss_func, optimizer, train_dl, test_dl, device)
+    train_losses, \
+    val_losses,\
+    epoch_stop,\
+    best_val_score = fit(epochs, model, loss_func, optimizer, train_dl, val_dl,device)
+
     #return model, train_losses, test_losses
-    return train_losses, test_losses
+    return train_losses, val_losses, epoch_stop, best_val_score
+
+### DO THIS
+def make_weighted_sampler(df, reg):
+    '''
+    Given a training dataframe, create a balanced sampler for the class
+    indicated
+    '''
+    # make weighted sampler for data loader
+    class_sample_count = df[reg].value_counts()
+    # get 1/count as weight for each class
+    weight = dict([(x,(1. / class_sample_count[x])) for x in class_sample_count.keys()])
+    # apply new weight to each sample
+    samples_weight = np.array([weight[t] for t in df[reg].values])
+    samples_weight = torch.from_numpy(samples_weight).double()
+
+    sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
+    return sampler
 
 
 # +--------------------------------+

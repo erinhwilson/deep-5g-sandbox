@@ -9,6 +9,9 @@ import pandas as pd
 import random
 random.seed(7)
 
+from Bio.Seq import reverse_complement
+
+
 # import torch
 # from torch.utils.data import TensorDataset,DataLoader
 # from torch import nn
@@ -274,18 +277,113 @@ def make_XY_df(df,conds,loc2seq, op_leads, op_filt=True):
 
     return XYdf.reset_index().rename(columns={'index':'og_index'})
 
+# +-----------------------------+
+# | Data Augmentation functions |
+# +-----------------------------+
 
+def augment_revcomp(df,seq_col='upstream_region'):
+    '''
+    Given a dataframe of training data, augment it by adding the
+    reverse complemented version of the sequence
+    '''
+    
+    new_rows = []
+    # for each row in the original df
+    for i,row in df.iterrows():
+        seq = row[seq_col]
+        new_row = copy.deepcopy(row)
+        # get the revcomp and set it as the seq_col value
+        new_row[seq_col] = reverse_complement(seq)         
+        # add row to new rows
+        new_rows.append(new_row.values)
+    
+    # put new rows into a df
+    new_rows = pd.DataFrame(new_rows,columns=df.columns)
 
+    # add direction to og df and new rows
+    df['dir'] = 'fwd'
+    new_rows['dir'] = 'rev'
+    
+    return pd.concat([df,new_rows])
+        
+def augment_slide(df,w,flankseq_dict,s=50,id_col='locus_tag',seq_col='upstream_region'):
+    '''
+    Given a dataframe of training data, augment it by sliding a window
+    of size w down the length of seq_col by stride s
+    '''
+    seq_len = max([len(x) for x in flankseq_dict.values()])
+    # make sure the sliding window and stride are equally divisible
+    assert (seq_len-w) % s == 0
+    slides = int((seq_len-w)/s) + 1 # number of full slides down seq
+    
+    new_rows = []
+    # for each row in the original df
+    for i,row in df.iterrows():
+        # get seq from the flank dict
+        lt = row[id_col]
+        seq = flankseq_dict[lt]
 
+        # slide across seq
+        left=0
+        for i in range(slides):
+            # take sequence slice
+            right = left+w # window size
+            new_seq = seq[left:right]
+            
+            # add to new row
+            new_row = copy.deepcopy(row)
+            new_row[seq_col] = new_seq
+            new_row['slide'] = i
+            new_rows.append(new_row.values)
+            
+            # take next stride
+            left += s
+            
+    # use index order of final new_row
+    aug_df = pd.DataFrame(new_rows,columns=new_row.index)
+    return aug_df
 
+def augment_mutate(df,n,seq_col='upstream_region',mutation_rate=0.03):
+    '''
+    Given a dataframe of training data, augment it by adding 
+    mutated versions back into the data frame
+    '''
+    mutation_dict = {
+        'A':['C','G','T'],
+        'C':['G','T','A'],
+        'G':['T','A','C'],
+        'T':['A','C','G']
+    }
+    new_rows = []
+    # for each row in the original df
+    for i,row in df.iterrows():
+        seq = row[seq_col]
+                
+        # generate n mutants
+        for j in range(n):
+            new_row = copy.deepcopy(row)
+            new_seq = list(seq)
+            mutate_vec = [random.random() for x in range(len(seq))]
+            
+            # loop through mutation values along length of the seq
+            for k in range(len(seq)):
+                # if random value is below mutation rate, then make a change
+                if mutate_vec[k] < mutation_rate:
+                    cur_base = seq[k]
+                    # select new base randomly
+                    new_base = random.choice(mutation_dict[cur_base])
+                    new_seq[k] = new_base
+            
+            new_row[seq_col] = ''.join(new_seq)
+            new_row['seq_version'] = j+1
+            new_rows.append(new_row.values)
 
-
-
-
-
-
-
-
+    # put new rows into a df
+    new_rows = pd.DataFrame(new_rows,columns=new_row.index)
+    # add version to og df 
+    df['seq_version'] = 0
+    
+    return pd.concat([df,new_rows])
 
 
 
