@@ -7,6 +7,9 @@ import numpy as np
 import pandas as pd 
 import random
 random.seed(7)
+import tqdm
+
+from sklearn.metrics import f1_score,precision_score,recall_score,accuracy_score,precision_recall_curve,matthews_corrcoef
 
 import torch
 from torch.utils.data import Dataset,DataLoader #,TensorDataset
@@ -198,6 +201,8 @@ def set_reg_class_up_down(df, col,thresh=1.0):
     
     reg_col = f"{col}_reg_UD"
     df[reg_col] = df[col].apply(lambda x: get_class(x))
+
+    return reg_col
     
 def set_reg_class_yes_no(df, col,thresh=1.0):
     '''
@@ -500,6 +505,58 @@ def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0):
     plt.legend(bbox_to_anchor=(1,1),loc='upper left')
     plt.show()
 
+def get_confusion_data(model, model_name, ds, genes, oracle,loc2seq,device):
+    '''
+    Given a trained model and set of genes, evaluate the model's
+    ability to predict these genes' reg class
+    '''
+    model.eval()
+    data = []
+    for gene in genes:
+        dna = loc2seq[gene]
+        if ds.name == 'ohe':
+            s = torch.tensor(u.one_hot_encode(dna)).unsqueeze(0).to(device)
+        elif ds.name == 'kmer':
+            s = torch.tensor(u.count_kmers_in_seq(dna,u.kmers(ds.k))).to(device)
+            # need unsqueeze?
+        else:
+            raise ValueError(f"Unknown DataSetSpec Type {ds.name}. Currently just [ohe, kmer]")
+
+        actual = oracle[gene]
+        preds = [x.topk(1) for x in model(s.float())]
+        
+        for i in range(len(preds)):
+            prob,clss = [x.item() for x in preds[i]]
+            data.append((gene,actual[i], clss,prob,dna))
+            
+    df = pd.DataFrame(data, columns=['locus_tag','truth','pred','prob','seq'])
+    return df
+
+
+def cls_report(df,labels=[0,1,2]):
+    '''
+    Basic print out of precicion/recall/f1 scores for a classification problem
+    '''
+    
+    acc = accuracy_score(df['truth'].values,df['pred'].values)
+    mcc = matthews_corrcoef(df['truth'].values,df['pred'].values)
+    
+    # micro
+    mi_p = precision_score(df['truth'].values,df['pred'].values,labels=labels,average='micro')
+    mi_r = recall_score(df['truth'].values,df['pred'].values,labels=labels,average='micro')
+    mi_f1 = f1_score(df['truth'].values,df['pred'].values,labels=labels,average='micro')
+    
+    # macro
+    ma_p = precision_score(df['truth'].values,df['pred'].values,labels=labels,average='macro')
+    ma_r = recall_score(df['truth'].values,df['pred'].values,labels=labels,average='macro')
+    ma_f1 = f1_score(df['truth'].values,df['pred'].values,labels=labels,average='macro')
+
+    report = {
+        'acc':acc,'mcc':mcc,
+        'mi_p':mi_p,'mi_r':mi_r,'mi_f1':mi_f1,
+        'ma_p':ma_p,'ma_r':ma_r,'ma_f1':ma_f1,
+    }
+    return report
 
 # +------------------------------+
 # | CNN filter viewing functions |

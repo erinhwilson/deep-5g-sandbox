@@ -4,10 +4,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 import numpy as np
+import os
 import pandas as pd
 import random
 random.seed(7)
-import tqdm
 
 import utils as u
 import torch_utils as tu
@@ -18,10 +18,16 @@ from models import DNA_Linear_Deep, Kmer_Linear, TINKER_DNA_CNN
 
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DATASET_TYPES = [
+    DatasetSpec('ohe'),
+    DatasetSpec('kmer',k=3),
+    DatasetSpec('kmer',k=6),
+]
 
 def setup_config():
 
     config = {
+        'out_dir':'pipe0',
         'model_types':['LinearDeep','CNN32','Kmer3','Kmer6'],
         'learning_rates':[0.01,0.001],
         'sampler_types': ["default", "rebalanced"],
@@ -32,9 +38,12 @@ def setup_config():
             ("mutation",{'mutation_rate':0.1}),
         ],
 
-        'reg':'highCu_reg_UD',
+        'target_cond':'highCu',
         'seq_col':'upstream_region',
-        'id_col':'locus_tag'
+        'id_col':'locus_tag',
+        'loss_func':nn.CrossEntropyLoss(),
+        'loss_label':'Cross Entropy Loss',
+        'epochs':5000
     }
 
     return config
@@ -91,18 +100,21 @@ def get_model_choice(choice,seq_len):
 def get_augmentation_choice(choice,args,train_df,loc2flankseq):
     # No Augmentation
     if choice == 'no':
-        return train_df
+        aug_str = 'no_aug'
+        return train_df,aug_str
 
     # revcomp slide
     elif choice == 'revslide':
         temp = u.augment_revcomp(train_df)
         temp = u.augment_slide(temp,300,loc2flankseq,s=args['stride'])
-        return temp
+        aug_str = f"revslide{args['stride']}"
+        return temp,aug_str
 
     # mutation 
     elif choice == 'mutation':
         temp = u.augment_mutate(train_df,10,mutation_rate=args['mutation_rate'])
-        return temp
+        aug_str = f"mutation{args['mutation_rate']}"
+        return temp,aug_str
 
     else:
         raise ValueError(f"{choice} data augmentation choice not recognized. Options are: no, revslide, mutation")
@@ -144,9 +156,16 @@ def filter_inactive_genes(df, tpm_thresh):
 def main():
 
     config = setup_config()
-    reg = config['reg']
+    target_cond = config['target_cond']
     seq_col = config['seq_col']
     id_col = config['id_col']
+    loss_func = config['loss_func']
+    loss_label = config['loss_label']
+    epochs = config['epochs']
+    out_dir = config['out_dir']
+
+    if not os.path.isdir(out_dir):
+        raise ValueError(f"{out_dir} does not exist. Please make it.")
 
     # locus to gene info
     locus_info_filename = 'data/locus2info.tsv'
@@ -167,7 +186,7 @@ def main():
     XYdf = filter_inactive_genes(XYdf_og,2)
 
     # set regulatory class
-    tu.set_reg_class_up_down(XYdf,'highCu',thresh=0.6)
+    reg = tu.set_reg_class_up_down(XYdf,target_cond,thresh=0.6)
 
     # get stratified train/test/val split
     # specs for class partition dict
@@ -182,33 +201,172 @@ def main():
     train_df, \
     val_df = tu.stratified_partition(XYdf, cpd, class_col=reg)
 
-    print("Train")
-    print(train_df[reg].value_counts())
-    print("Val")
-    print(val_df[reg].value_counts())
-    print("Test")
-    print(test_df[reg].value_counts())
+    # save the dfs to the outdir for future debugging
+    train_df.to_csv(f'{out_dir}/train_df.tsv',sep='\t',index=False)
+    val_df.to_csv(f'{out_dir}/val_df.tsv',sep='\t',index=False)
+    test_df.to_csv(f'{out_dir}/test_df.tsv',sep='\t',index=False)
 
+    # print("Train")
+    # print(train_df[reg].value_counts())
+    # print("Val")
+    # print(val_df[reg].value_counts())
+    # print("Test")
+    # print(test_df[reg].value_counts())
+
+    oracle = dict([(a,[b]) for a,b in XYdf[[id_col,reg]].values])
     seq_len = len(train_df[seq_col].values[0])
+
+    # ** COLLECT RESULTS **
+    res_rows = []
+    loss_dict = {}
     
     # DATA AUGMENTATION LOOP
     for aug_choice,args in config['augmentation']:
         # augment the train df if needed
-        aug_df = get_augmentation_choice(aug_choice,args,train_df,loc2flankseq)
+        aug_df,aug_str = get_augmentation_choice(aug_choice,args,train_df,loc2flankseq)
+        print(f"Augmentation: {aug_str}")
+        aug_df.to_csv(f'{out_dir}/aug_train_df.tsv',sep='\t',index=False)
 
         # sampler loop
         for sampler_choice in config['sampler_types']:
+            print(f"\tSampler: {sampler_choice}")
             sampler, shuffle = get_sampler_choice(sampler_choice,aug_df,reg)
 
             # learning rate loop
             for lr in config['learning_rates']:
-                # MAKE DLS HERE
+                print(f"\t\tLR: {lr}")
+                dls = tu.build_dataloaders_single(
+                    aug_df, 
+                    val_df, 
+                    DATASET_TYPES,
+                    seq_col=seq_col,
+                    target_col=reg,
+                    sampler=sampler,
+                    shuffle=shuffle
+                )
+
+                # *********************************************
+                # Currently hardcoded to make these DataLoaders
+                kmer6_train_dl,kmer6_val_dl = dls['kmer_6']
+                kmer3_train_dl,kmer3_val_dl = dls['kmer_3']
+                ohe_train_dl,ohe_val_dl = dls['ohe']
+                # *********************************************
 
                 # model type loop
                 for model_choice in config['model_types']:
+                    print(f"\t\t\tModel: {model_choice}")
+                    # result dict for this specific model
+                    res_dict = {}
                     model = get_model_choice(model_choice,seq_len)
 
-                    print(f"{aug_choice} | {lr} | {sampler_choice} | {model_choice}")
+                    if model_choice == "Kmer3":
+                        train_dl, val_dl = dls['kmer_3']
+                        ds = DatasetSpec('kmer',k=3)
+                    elif model_choice == "Kmer6":
+                        train_dl, val_dl = dls['kmer_6']
+                        ds = DatasetSpec('kmer',k=6)
+                    else: # catches anything not a kmer model with One-hot encoding
+                        train_dl, val_dl = dls['ohe']
+                        ds = DatasetSpec('ohe')
+
+                    print("\t\t\t\tTraining...")
+                    train_losses, val_losses,estop,best_val_loss = tu.run_model(
+                        train_dl, 
+                        val_dl, 
+                        model,
+                        loss_func,
+                        DEVICE,
+                        lr=lr,
+                        epochs=epochs
+                    )
+
+                    data_label = [((train_losses,val_losses),model_choice,estop,best_val_loss)]
+
+
+                    # collect model results
+                    res_dict['train_losses'] = train_losses
+                    res_dict['val_losses'] = val_losses
+                    res_dict['estop'] = estop
+                    res_dict['best_val_loss'] = best_val_loss
+                    res_dict['data_label'] = data_label
+
+                    # save model itself
+                    print("\t\t\t\tSaving model...")
+                    lr_str = f"_lr{lr}"
+                    sample_str = f"_{sampler_choice}Sampler"
+                    model_base_str = f"{model_choice}{lr_str}{sample_str}_{aug_str}"
+                    model_filename = f"{model_base_str}.pth"
+                    model_path = os.path.join(out_dir,model_filename)
+                    torch.save(model,model_path)
+
+                    # save loss data
+                    res_dict_filename = f"{model_base_str}_loss_dict.npy"
+                    res_dict_path = os.path.join(out_dir,res_dict_filename)
+                    np.save(res_dict_path, res_dict) 
+
+                    loss_dict[model_base_str] = res_dict
+
+                    # get confusion data
+                    print("\t\t\t\tGetting Confusion data...")
+                    train_seqs = aug_df[id_col].values
+                    train_conf_df = tu.get_confusion_data(model, model_choice, ds, train_seqs, oracle,loc2seq,DEVICE)
+                    train_conf_df.to_csv(f"{model_base_str}_train_conf_df.tsv",sep='\t',index=False)
+
+                    val_seqs = val_df[id_col].values
+                    val_conf_df = tu.get_confusion_data(model, model_choice, ds, val_seqs, oracle,loc2seq,DEVICE)
+                    val_conf_df.to_csv(f"{model_base_str}_val_conf_df.tsv",sep='\t',index=False)
+
+                    # get classification report
+                    cls_report = tu.cls_report(val_conf_df)
+
+                    # put into result row
+                    row = [
+                        model_base_str,
+                        model_choice,
+                        lr,
+                        sampler_choice,
+                        aug_str,
+                        estop,
+                        best_val_loss,
+                        cls_report['acc'],
+                        cls_report['mcc'],
+                        cls_report['mi_p'],
+                        cls_report['mi_r'],
+                        cls_report['mi_f1'],
+                        cls_report['ma_p'],
+                        cls_report['ma_r'],
+                        cls_report['ma_f1']
+                    ]
+                    res_rows.append(row)
+
+                    loss_dict[model_base_str] = res_dict
+
+                    print(f"\t\t\t\tDone with {model_choice}...")
+    cols = [
+        'model_desc',
+        'model_type',
+        'lr',
+        'sampler',
+        'data_aug',
+        'epoch_stop',
+        'best_val_loss',
+        'acc',
+        'mcc',
+        'mi_p',
+        'mi_r',
+        'mi_f1',
+        'ma_p',
+        'ma_r',
+        'ma_f1'
+    ]
+    res_df = pd.DataFrame(res_rows,columns=cols)
+    res_path = os.path.join(out_dir,'res_df.tsv')
+    res_df.to_csv(res_path,sep='\t',index=False)
+
+    loss_dict_path = os.path.join(out_dir,'loss_dict.npy')
+    np.save(loss_dict_path, loss_dict) 
+    print("Done")
+
 
     
 
