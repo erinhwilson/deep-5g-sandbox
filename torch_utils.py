@@ -517,7 +517,8 @@ def get_confusion_data(model, model_name, ds, genes, oracle,loc2seq,device):
         if ds.name == 'ohe':
             s = torch.tensor(u.one_hot_encode(dna)).unsqueeze(0).to(device)
         elif ds.name == 'kmer':
-            s = torch.tensor(u.count_kmers_in_seq(dna,u.kmers(ds.k))).to(device)
+            #s = torch.tensor(u.count_kmers_in_seq(dna,u.kmers(ds.k))).to(device)
+            s = torch.tensor(u.count_kmers_in_seq(dna,u.kmers(ds.k))).unsqueeze(0).to(device)
             # need unsqueeze?
         else:
             raise ValueError(f"Unknown DataSetSpec Type {ds.name}. Currently just [ohe, kmer]")

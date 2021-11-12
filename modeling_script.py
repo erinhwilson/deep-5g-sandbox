@@ -28,7 +28,7 @@ def setup_config():
 
     config = {
         'out_dir':'pipe0',
-        'model_types':['LinearDeep','CNN32','Kmer3','Kmer6'],
+        'model_types':['LinearDeep','CNN32','CNN128','Kmer3','Kmer6'],
         'learning_rates':[0.01,0.001],
         'sampler_types': ["default", "rebalanced"],
         'augmentation': [
@@ -64,6 +64,21 @@ def get_model_choice(choice,seq_len):
         cnn = TINKER_DNA_CNN(
             seq_len,
             num_filters0=32,
+            num_filters1=32,
+            kernel_size0=8,
+            kernel_size1=8,
+            conv_pool_size0=3,
+            fc_node_num0=10,
+            fc_node_num1=10
+        )
+        cnn.to(DEVICE)
+        return cnn
+
+    # CNN 128 filt
+    elif choice == "CNN128":
+        cnn = TINKER_DNA_CNN(
+            seq_len,
+            num_filters0=128,
             num_filters1=32,
             kernel_size0=8,
             kernel_size1=8,
