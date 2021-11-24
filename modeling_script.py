@@ -13,7 +13,7 @@ import utils as u
 import torch_utils as tu
 from torch_utils import DatasetSpec
 
-from models import DNA_Linear_Deep, Kmer_Linear, TINKER_DNA_CNN
+from models import DNA_Linear_Deep, Kmer_Linear, TINKER_DNA_CNN,DNA_LSTM,DNA_CNNLSTM
 
 
 
@@ -27,8 +27,9 @@ DATASET_TYPES = [
 def setup_config():
 
     config = {
-        'out_dir':'pipe0',
-        'model_types':['LinearDeep','CNN32','CNN128','Kmer3','Kmer6'],
+        'out_dir':'pipe1',
+        #'model_types':['LinearDeep','CNN32','CNN128','Kmer3','Kmer6'],
+        'model_types':['LSTM','CNNLSTM'],
         'learning_rates':[0.01,0.001],
         'sampler_types': ["default", "rebalanced"],
         'augmentation': [
@@ -88,6 +89,28 @@ def get_model_choice(choice,seq_len):
         )
         cnn.to(DEVICE)
         return cnn
+
+    # LSTM
+    elif choice == "LSTM":
+        lstm = DNA_LSTM(
+            seq_len,
+            DEVICE,
+            hidden_dim=100
+        )
+        lstm.to(DEVICE)
+        return lstm
+
+    # CNN-LSTM
+    elif choice == "CNNLSTM":
+        cnnlstm = DNA_CNNLSTM(
+            seq_len,
+            DEVICE,
+            hidden_dim=100,
+            num_filters=32,
+            kernel_size=8
+        )
+        cnnlstm.to(DEVICE)
+        return cnnlstm
 
     # Kmer 3
     elif choice == "Kmer3":
