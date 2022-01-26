@@ -375,12 +375,15 @@ def fit(epochs, model, loss_func, opt, train_dl, val_dl,device,patience=1000):
     return train_losses, val_losses,estop,best_val_score
 
 
-def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20):
+def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20, opt=None):
     '''
     Given data and a model type, run dataloaders with MSE loss and SGD opt
     '''
     # define optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr) 
+    if opt:
+        optimizer = opt
+    else: # if no opt provided, just use SGD
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr) 
     
     # run the training loop
     #train_losses, test_losses = fit(epochs, model, loss_func, optimizer, train_dl, test_dl, device)

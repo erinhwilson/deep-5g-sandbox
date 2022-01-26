@@ -27,18 +27,19 @@ DATASET_TYPES = [
 def setup_config():
 
     config = {
-        'out_dir':'pipe1',
+        'out_dir':'pipe2',
         #'model_types':['LinearDeep','CNN32','CNN128','Kmer3','Kmer6'],
-        'model_types':['LSTM','CNNLSTM'],
+        'model_types':['CNN32','LSTM','CNNLSTM'],
         'learning_rates':[0.01,0.001],
-        'sampler_types': ["default", "rebalanced"],
+        #'sampler_types': ["default", "rebalanced"],
+        'sampler_types': ["rebalanced"],
         'augmentation': [
             ("no",{}),
             ("revslide",{'stride':50}),
-            ("mutation",{'mutation_rate':0.03}),
+            #("mutation",{'mutation_rate':0.03}),
             ("mutation",{'mutation_rate':0.1}),
         ],
-
+        'opt_types':['SGD','Adam','Adagrad','AdamW','RMSprop'],
         'target_cond':'highCu',
         'seq_col':'upstream_region',
         'id_col':'locus_tag',
@@ -170,6 +171,23 @@ def get_sampler_choice(choice,train_df,reg):
     else:
         raise ValueError(f"{choice} sampler choice not recognized. Options are: default, rebalanced")
 
+def get_opt_choice(opt_str, model, lr):
+    '''
+    Given a string indicating an optimizer
+    '''
+    if opt_str == "SGD":
+        return torch.optim.SGD(model.parameters(), lr=lr)
+    elif opt_str == "Adam":
+        return torch.optim.Adam(model.parameters(), lr=lr)
+    elif opt_str == "Adagrad":
+        return torch.optim.Adagrad(model.parameters(), lr=lr)
+    elif opt_str == "AdamW":
+        return torch.optim.AdamW(model.parameters(), lr=lr)
+    elif opt_str == "RMSprop":
+        return torch.optim.RMSprop(model.parameters(), lr=lr)
+    else:
+        raise ValueError(f"{choice} optimzer choice not recognized. Options are: SGD, Adam, Adagrad, AdamW, RMSprop")
+
 
 def filter_inactive_genes(df, tpm_thresh):
     # list of relevant condition names
@@ -258,6 +276,12 @@ def main():
     res_rows = []
     loss_dict = {}
     
+    # progress tracking
+    n = len(config['augmentation']) * len(config['sampler_types']) * \
+        len(config['learning_rates']) * len(config['model_types']) * \
+        len(config['opt_types'])
+    i = 0
+    
     # DATA AUGMENTATION LOOP
     for aug_choice,args in config['augmentation']:
         # augment the train df if needed
@@ -307,83 +331,94 @@ def main():
                         train_dl, val_dl = dls['ohe']
                         ds = DatasetSpec('ohe')
 
-                    print("\t\t\t\tTraining...")
-                    train_losses, val_losses,estop,best_val_loss = tu.run_model(
-                        train_dl, 
-                        val_dl, 
-                        model,
-                        loss_func,
-                        DEVICE,
-                        lr=lr,
-                        epochs=epochs
-                    )
-
-                    data_label = [((train_losses,val_losses),model_choice,estop,best_val_loss)]
+                    # optimizer type loop
+                    for opt_choice in config['opt_types']:
+                        print(f"\t\t\tOptimizer: {opt_choice}")
+                        opt = get_opt_choice(opt_choice, model, lr)
 
 
-                    # collect model results
-                    res_dict['train_losses'] = train_losses
-                    res_dict['val_losses'] = val_losses
-                    res_dict['estop'] = estop
-                    res_dict['best_val_loss'] = best_val_loss
-                    res_dict['data_label'] = data_label
+                        print("\t\t\t\tTraining...")
+                        train_losses, val_losses,estop,best_val_loss = tu.run_model(
+                            train_dl, 
+                            val_dl, 
+                            model,
+                            loss_func,
+                            DEVICE,
+                            lr=lr,
+                            epochs=epochs,
+                            opt=opt
+                        )
 
-                    # save model itself
-                    print("\t\t\t\tSaving model...")
-                    lr_str = f"_lr{lr}"
-                    sample_str = f"_{sampler_choice}Sampler"
-                    model_base_str = f"{model_choice}{lr_str}{sample_str}_{aug_str}"
-                    model_filename = f"{model_base_str}.pth"
-                    model_path = os.path.join(out_dir,model_filename)
-                    torch.save(model,model_path)
+                        data_label = [((train_losses,val_losses),model_choice,estop,best_val_loss)]
 
-                    # save loss data
-                    res_dict_filename = f"{model_base_str}_loss_dict.npy"
-                    res_dict_path = os.path.join(out_dir,res_dict_filename)
-                    np.save(res_dict_path, res_dict) 
 
-                    loss_dict[model_base_str] = res_dict
+                        # collect model results
+                        res_dict['train_losses'] = train_losses
+                        res_dict['val_losses'] = val_losses
+                        res_dict['estop'] = estop
+                        res_dict['best_val_loss'] = best_val_loss
+                        res_dict['data_label'] = data_label
 
-                    # get confusion data
-                    print("\t\t\t\tGetting Confusion data...")
-                    train_seqs = aug_df[id_col].values
-                    train_conf_df = tu.get_confusion_data(model, model_choice, ds, train_seqs, oracle,loc2seq,DEVICE)
-                    train_conf_df.to_csv(f"{model_base_str}_train_conf_df.tsv",sep='\t',index=False)
+                        # save model itself
+                        print("\t\t\t\tSaving model...")
+                        lr_str = f"_lr{lr}"
+                        sample_str = f"_{sampler_choice}Sampler"
+                        opt_str = f"_{opt_choice}"
+                        model_base_str = f"{model_choice}{lr_str}{opt_str}{sample_str}_{aug_str}"
+                        model_filename = f"{model_base_str}.pth"
+                        model_path = os.path.join(out_dir,model_filename)
+                        torch.save(model,model_path)
 
-                    val_seqs = val_df[id_col].values
-                    val_conf_df = tu.get_confusion_data(model, model_choice, ds, val_seqs, oracle,loc2seq,DEVICE)
-                    val_conf_df.to_csv(f"{model_base_str}_val_conf_df.tsv",sep='\t',index=False)
+                        # save loss data
+                        res_dict_filename = f"{model_base_str}_loss_dict.npy"
+                        res_dict_path = os.path.join(out_dir,res_dict_filename)
+                        np.save(res_dict_path, res_dict) 
 
-                    # get classification report
-                    cls_report = tu.cls_report(val_conf_df)
+                        loss_dict[model_base_str] = res_dict
 
-                    # put into result row
-                    row = [
-                        model_base_str,
-                        model_choice,
-                        lr,
-                        sampler_choice,
-                        aug_str,
-                        estop,
-                        best_val_loss,
-                        cls_report['acc'],
-                        cls_report['mcc'],
-                        cls_report['mi_p'],
-                        cls_report['mi_r'],
-                        cls_report['mi_f1'],
-                        cls_report['ma_p'],
-                        cls_report['ma_r'],
-                        cls_report['ma_f1']
-                    ]
-                    res_rows.append(row)
+                        # get confusion data
+                        print("\t\t\t\tGetting Confusion data...")
+                        train_seqs = aug_df[id_col].values
+                        train_conf_df = tu.get_confusion_data(model, model_choice, ds, train_seqs, oracle,loc2seq,DEVICE)
+                        train_conf_df.to_csv(f"{model_base_str}_train_conf_df.tsv",sep='\t',index=False)
 
-                    loss_dict[model_base_str] = res_dict
+                        val_seqs = val_df[id_col].values
+                        val_conf_df = tu.get_confusion_data(model, model_choice, ds, val_seqs, oracle,loc2seq,DEVICE)
+                        val_conf_df.to_csv(f"{model_base_str}_val_conf_df.tsv",sep='\t',index=False)
 
-                    print(f"\t\t\t\tDone with {model_choice}...")
+                        # get classification report
+                        cls_report = tu.cls_report(val_conf_df)
+
+                        # put into result row
+                        row = [
+                            model_base_str,
+                            model_choice,
+                            lr,
+                            opt_choice,
+                            sampler_choice,
+                            aug_str,
+                            estop,
+                            best_val_loss,
+                            cls_report['acc'],
+                            cls_report['mcc'],
+                            cls_report['mi_p'],
+                            cls_report['mi_r'],
+                            cls_report['mi_f1'],
+                            cls_report['ma_p'],
+                            cls_report['ma_r'],
+                            cls_report['ma_f1']
+                        ]
+                        res_rows.append(row)
+
+                        loss_dict[model_base_str] = res_dict
+                        i+=1
+                        print(f"\t\t\t\tDone with {model_base_str}...")
+                        print(f"{i} of {n}")
     cols = [
         'model_desc',
         'model_type',
         'lr',
+        'opt',
         'sampler',
         'data_aug',
         'epoch_stop',
