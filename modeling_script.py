@@ -26,20 +26,34 @@ DATASET_TYPES = [
 
 def setup_config():
 
+    # config = {
+    #     'out_dir':'pipe2',
+    #     #'model_types':['LinearDeep','CNN32','CNN128','Kmer3','Kmer6'],
+    #     'model_types':['CNN32','LSTM','CNNLSTM'],
+    #     'learning_rates':[0.01,0.001],
+    #     #'sampler_types': ["default", "rebalanced"],
+    #     'sampler_types': ["rebalanced"],
+    #     'augmentation': [
+    #         ("no",{}),
+    #         ("revslide",{'stride':50}),
+    #         #("mutation",{'mutation_rate':0.03}),
+    #         ("mutation",{'mutation_rate':0.1}),
+    #     ],
+    #     'opt_types':['SGD','Adam','Adagrad','AdamW','RMSprop'],
+    #     'target_cond':'highCu',
+    #     'seq_col':'upstream_region',
+    #     'id_col':'locus_tag',
+    #     'loss_func':nn.CrossEntropyLoss(),
+    #     'loss_label':'Cross Entropy Loss',
+    #     'epochs':5000
+    # }
     config = {
-        'out_dir':'pipe2',
-        #'model_types':['LinearDeep','CNN32','CNN128','Kmer3','Kmer6'],
-        'model_types':['CNN32','LSTM','CNNLSTM'],
+        'out_dir':'hyak_test',
+        'model_types':['CNN32'],
         'learning_rates':[0.01,0.001],
-        #'sampler_types': ["default", "rebalanced"],
         'sampler_types': ["rebalanced"],
-        'augmentation': [
-            ("no",{}),
-            ("revslide",{'stride':50}),
-            #("mutation",{'mutation_rate':0.03}),
-            ("mutation",{'mutation_rate':0.1}),
-        ],
-        'opt_types':['SGD','Adam','Adagrad','AdamW','RMSprop'],
+        'augmentation': [("no",{})],
+        'opt_types':['SGD','Adam'],
         'target_cond':'highCu',
         'seq_col':'upstream_region',
         'id_col':'locus_tag',
@@ -221,7 +235,9 @@ def main():
     out_dir = config['out_dir']
 
     if not os.path.isdir(out_dir):
-        raise ValueError(f"{out_dir} does not exist. Please make it.")
+        print(f"creating dir {out_dir}")
+        os.mkdir(out_dir)
+        #raise ValueError(f"{out_dir} does not exist. Please make it.")
 
     # locus to gene info
     locus_info_filename = 'data/locus2info.tsv'
@@ -380,11 +396,13 @@ def main():
                         print("\t\t\t\tGetting Confusion data...")
                         train_seqs = aug_df[id_col].values
                         train_conf_df = tu.get_confusion_data(model, model_choice, ds, train_seqs, oracle,loc2seq,DEVICE)
-                        train_conf_df.to_csv(f"{model_base_str}_train_conf_df.tsv",sep='\t',index=False)
+                        tconfdf_fname = os.path.join(out_dir,f"{model_base_str}_train_conf_df.tsv")
+                        train_conf_df.to_csv(tconfdf_fname,sep='\t',index=False)
 
                         val_seqs = val_df[id_col].values
                         val_conf_df = tu.get_confusion_data(model, model_choice, ds, val_seqs, oracle,loc2seq,DEVICE)
-                        val_conf_df.to_csv(f"{model_base_str}_val_conf_df.tsv",sep='\t',index=False)
+                        vconfdf_fname = os.path.join(out_dir,f"{model_base_str}_val_conf_df.tsv")
+                        val_conf_df.to_csv(vconfdf_fname,sep='\t',index=False)
 
                         # get classification report
                         cls_report = tu.cls_report(val_conf_df)
