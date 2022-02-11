@@ -156,6 +156,67 @@ class TINKER_DNA_CNN(nn.Module):
         out = self.conv_net(xb)
         return out
 
+class DNA_2CNN(nn.Module):
+    def __init__(self,
+                 seq_len,
+                 num_filters1=32,
+                 num_filters2=32,
+                 kernel_size1=8,
+                 kernel_size2=8,
+                 conv_pool_size1=1, # default no pooling
+                 conv_pool_size2=1,
+                 fc_node_num1 = 10,
+                 fc_node_num2 = 10,
+                 dropout1 = 0.2,
+                 dropout2 = 0.2,
+                ):
+        super().__init__()
+        
+        self.seq_len = seq_len
+        
+        # calculation for number of linear nodes need to come after final conv layer
+        linear_node_num = int(np.floor((seq_len - kernel_size1 + 1)/conv_pool_size1))
+        linear_node_num = int(np.floor((linear_node_num - kernel_size2 + 1)/conv_pool_size2))
+        linear_node_num = linear_node_num*num_filters2
+        #linear_node_num = linear_node_num*num_filters1
+        
+        self.conv_net = nn.Sequential(
+            # Conv layer 1
+            nn.Conv2d(1, num_filters1, kernel_size=(4,kernel_size1)),
+            # ^^ changed from 4 to 1 channel??
+            nn.ReLU(),
+            nn.MaxPool2d((1,conv_pool_size1)), # def stride = kernel_size
+            nn.Dropout(dropout1),
+
+            # Conv layer 2
+            nn.Conv2d(num_filters1, num_filters2, kernel_size=(1,kernel_size2)),
+            nn.ReLU(),
+            nn.Dropout(dropout2),
+            
+            nn.Flatten(),
+            # Fully connected layer 1
+            nn.Linear(linear_node_num, fc_node_num1),
+            nn.ReLU(),
+            # Fully connected layer 2
+#             nn.Linear(fc_node_num1, fc_node_num2),
+#             nn.ReLU(),
+            # final prediction
+            nn.Linear(fc_node_num1, 1),
+        ) 
+
+    def forward(self, xb):
+        # reshape view to batch_ssize x 4channel x seq_len
+        # permute to put channel in correct order
+        
+        #xb = xb.permute(0,2,1) 
+        # OHE FIX??
+        
+        xb = xb.permute(0,2,1).unsqueeze(1)
+        # ^^ Conv2D input fix??
+        
+        out = self.conv_net(xb)
+        return out
+
 
 class DNA_LSTM(nn.Module):
     def __init__(self,

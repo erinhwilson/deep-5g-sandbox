@@ -151,6 +151,7 @@ def quick_loss_plot_simple(data_label_list,out_file,loss_type="MSE Loss",sparse_
     '''
     For each train/test loss trajectory, plot loss by epoch
     '''
+    fig = plt.figure()
     for i,((train_data,test_data),label) in enumerate(data_label_list):
         # plot only 1 in every sparse_n points
         if sparse_n:
@@ -165,9 +166,11 @@ def quick_loss_plot_simple(data_label_list,out_file,loss_type="MSE Loss",sparse_
     plt.ylabel(loss_type)
     plt.xlabel("Epoch")
     plt.legend(bbox_to_anchor=(1,1),loc='upper left')
-    plt.savefig(out_file)
+    plt.savefig(out_file,bbox_inches='tight')
 
 def parity_plot(model_name,ytrue,ypred, pearson,rigid=False, out_dir="out_dir"):
+    
+    fig = plt.figure()
     plt.scatter(ytrue, ypred, alpha=0.2)
     
     # y=x line
@@ -179,7 +182,7 @@ def parity_plot(model_name,ytrue,ypred, pearson,rigid=False, out_dir="out_dir"):
     plt.xlabel("Actual Score",fontsize=14)
     plt.ylabel("Predicted Score",fontsize=14)
     plt.title(f"{model_name} (pearson:{pearson:.3f})",fontsize=20)
-    plt.savefig(f'{out_dir}/{model_name}_parity_plot.png')
+    plt.savefig(f'{out_dir}/{model_name}_parity_plot.png',bbox_inches='tight')
 
 
 # #####################################################
