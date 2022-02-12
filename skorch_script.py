@@ -99,7 +99,7 @@ def setup_config():
         'patience':100,
 
         # skorch search specifics
-        'search_iters':10,
+        'search_iters':1000,
         
     }
 
@@ -244,7 +244,7 @@ def main():
         device='cuda',  # uncomment this to train with CUDA
         verbose=0,
         callbacks=[
-            Checkpoint(load_best=True,dirname=out_dir),
+            #Checkpoint(load_best=True,dirname=out_dir),
             EarlyStopping(patience=config['patience'])]
     )
 
