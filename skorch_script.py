@@ -84,7 +84,7 @@ def setup_config():
         'condition_file':'data/conditions_to_include.txt',
 
         # outputs
-        'out_dir':'skorch_test',
+        'out_dir':'skorch_test_noCu',
         'job_name':'skorch_randcv_st_noCu'
 
         # data specifics
