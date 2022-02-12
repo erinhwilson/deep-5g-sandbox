@@ -85,7 +85,7 @@ def setup_config():
 
         # outputs
         'out_dir':'skorch_test_noCu',
-        'job_name':'skorch_randcv_st_noCu'
+        'job_name':'skorch_randcv_st_noCu',
 
         # data specifics
         'id_col':'locus_tag',
