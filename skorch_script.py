@@ -95,8 +95,8 @@ def setup_config():
         # model specifics
         'model_type':'2CNN',
         'skorch_params':get_params(),
-        'epochs':100,
-        'patience':10,
+        'epochs':500,
+        'patience':100,
 
         # skorch search specifics
         'search_iters':10,
@@ -243,7 +243,9 @@ def main():
         #lr=0.001,
         device='cuda',  # uncomment this to train with CUDA
         verbose=0,
-        callbacks=[Checkpoint(),EarlyStopping(patience=config['patience'])]
+        callbacks=[
+            Checkpoint(load_best=True,dirname=out_dir),
+            EarlyStopping(patience=config['patience'])]
     )
 
     # make sklearn search object
