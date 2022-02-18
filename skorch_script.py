@@ -16,14 +16,13 @@ from scipy.stats import loguniform,uniform
 #from random import randint
 
 from skorch import NeuralNetRegressor
+from skorch.callbacks import EarlyStopping,Checkpoint
 
 import utils as u 
 import torch_utils as tu
 import models as m 
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-DEVICE
-
 
 def load_data(config):
     id_col = config['id_col']
@@ -43,7 +42,7 @@ def load_data(config):
     # dict of locus to sequence
     loc2seq = dict([(x,z) for (x,z) in XY_df[[id_col,seq_col]].values])
 
-    condition_file = 'data/conditions_to_include.txt'
+    condition_file = config['condition_file']
     with open(condition_file,'r') as f:
         conditions = list(x.strip() for x in f.readlines())
         
@@ -54,20 +53,24 @@ def load_data(config):
 
 
 def get_params():
-    # params specific for CNN of a certain type...
+    # params specific for CNN of a certain type:
+        # current: models.py DNA_2CNN
     params = {
         'lr': [0.0005, 0.0001,0.00001],#loguniform(0.0001, 0.01)
         
         'module__num_filters1': [16,32,64,128], # uniform(8,128), #
         'module__num_filters2': [16,32,64,128],
-        'module__kernel_size1': [4,8,16,32],
-        'module__kernel_size2': [4,8,16,32],
+        
+        'module__kernel_size1': [6,8,12,16,32],
+        'module__kernel_size2': [6,8,12,16,32],
+        
         'module__conv_pool_size1': [1,3,6,12],
         'module__fc_node_num1': [10, 25, 50,100], #randint(10,100), #
+        
         'module__dropout1': [0.0,0.2,0.5],
         'module__dropout2': [0.0,0.2,0.5],
+        
         'optimizer':[torch.optim.SGD, torch.optim.Adam, torch.optim.Adagrad,torch.optim.AdamW,torch.optim.RMSprop]
-        #'optimizer__nesterov': [False, True],
     }
 
     return params 
@@ -75,17 +78,28 @@ def get_params():
 def setup_config():
 
     config = {
+        # data inputs
         'expression_file':'data/XY_logTPM_opFilt.tsv',
         'locus_info_file':'data/locus2info.tsv',
+        'condition_file':'data/conditions_to_include.txt',
+
+        # outputs
+        'out_dir':'skorch_test_noCu',
+        'job_name':'skorch_randcv_st_noCu',
+
+        # data specifics
         'id_col':'locus_tag',
         'seq_col':'upstream_region',
         'target_col':'NoCu',
-        'out_dir':'skorch_test',
+        
+        # model specifics
         'model_type':'2CNN',
         'skorch_params':get_params(),
-        'epochs':100,
-        'search_iters':10,
-        'job_name':'skorch_randcv_st_noCu'
+        'epochs':500,
+        'patience':100,
+
+        # skorch search specifics
+        'search_iters':1000,
         
     }
 
@@ -228,7 +242,10 @@ def main():
         max_epochs=config['epochs'],
         #lr=0.001,
         device='cuda',  # uncomment this to train with CUDA
-        verbose=0
+        verbose=0,
+        callbacks=[
+            #Checkpoint(load_best=True,dirname=out_dir),
+            EarlyStopping(patience=config['patience'])]
     )
 
     # make sklearn search object
