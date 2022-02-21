@@ -56,7 +56,7 @@ def get_params():
     # params specific for CNN of a certain type:
         # current: models.py DNA_2CNN
     params = {
-        'lr': [0.0005, 0.0001,0.00001],#loguniform(0.0001, 0.01)
+        'lr': [0.0005, 0.0001,0.00005,0.00001],#loguniform(0.0001, 0.01)
         
         'module__num_filters1': [16,32,64,128], # uniform(8,128), #
         'module__num_filters2': [16,32,64,128],
@@ -95,11 +95,11 @@ def setup_config():
         # model specifics
         'model_type':'2CNN',
         'skorch_params':get_params(),
-        'epochs':50, # CHANGE
-        'patience':10,
+        'epochs':5000, 
+        'patience':500,
 
         # skorch search specifics
-        'search_iters':10, # CHANGE
+        'search_iters':1000, 
         
     }
 
