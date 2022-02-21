@@ -250,7 +250,7 @@ def main():
         device='cuda',  # uncomment this to train with CUDA
         verbose=0,
         callbacks=[
-            Checkpoint(load_best=True,dirname=out_dir,f_pickle='best_chkpt.pkl'),
+            Checkpoint(dirname=out_dir,f_pickle='best_chkpt.pkl'), # load_best=True
             EarlyStopping(patience=config['patience'])]
     )
 
