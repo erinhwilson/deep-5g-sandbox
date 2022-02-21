@@ -95,11 +95,11 @@ def setup_config():
         # model specifics
         'model_type':'2CNN',
         'skorch_params':get_params(),
-        'epochs':500,
-        'patience':100,
+        'epochs':50, # CHANGE
+        'patience':10,
 
         # skorch search specifics
-        'search_iters':1000,
+        'search_iters':10, # CHANGE
         
     }
 
@@ -201,6 +201,10 @@ def parity_plot(model_name,ytrue,ypred, pearson,rigid=False, out_dir="out_dir"):
 
 # #####################################################
 def main():
+
+    # +----------------------+
+    # | Load data and config |
+    # +----------------------+
     config = setup_config()
     id_col = config['id_col']
     seq_col = config['seq_col']
@@ -227,7 +231,9 @@ def main():
 
     # DECISION: single or multi task?
 
-    # SINGLE
+    # +----------------+
+    # | SINGLE TASK WF |
+    # +----------------+
     print(f"Running single task learning for {target_col}...")
     X, y = make_st_skorch_dfs(full_train_df, seq_col=seq_col,target_col=target_col)
     print("X:",X.shape)
@@ -244,7 +250,7 @@ def main():
         device='cuda',  # uncomment this to train with CUDA
         verbose=0,
         callbacks=[
-            #Checkpoint(load_best=True,dirname=out_dir),
+            Checkpoint(load_best=True,dirname=out_dir,f_pickle='best_chkpt.pkl'),
             EarlyStopping(patience=config['patience'])]
     )
 
