@@ -23,6 +23,7 @@ import torch_utils as tu
 import models as m 
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print("Device:",DEVICE)
 
 def load_data(config):
     id_col = config['id_col']
@@ -247,7 +248,7 @@ def main():
         module__seq_len=300,
         max_epochs=config['epochs'],
         #lr=0.001,
-        device='cuda',  # uncomment this to train with CUDA
+        device=DEVICE,#'cuda',  # uncomment this to train with CUDA
         verbose=0,
         callbacks=[
             Checkpoint(dirname=out_dir,f_pickle='best_chkpt.pkl'), # load_best=True
