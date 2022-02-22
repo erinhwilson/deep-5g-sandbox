@@ -249,7 +249,7 @@ def main():
         max_epochs=config['epochs'],
         #lr=0.001,
         device=DEVICE,#'cuda',  # uncomment this to train with CUDA
-        verbose=0,
+        verbose=1,
         callbacks=[
             Checkpoint(dirname=out_dir,f_pickle='best_chkpt.pkl'), # load_best=True
             EarlyStopping(patience=config['patience'])]
@@ -264,7 +264,7 @@ def main():
         n_jobs=-1, 
         cv=5,#cv, 
         random_state=1,
-        verbose=1 #2
+        verbose=2 #2
     )
 
     # learn stuff
