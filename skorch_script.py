@@ -249,7 +249,7 @@ def main():
         max_epochs=config['epochs'],
         #lr=0.001,
         device=DEVICE,#'cuda',  # uncomment this to train with CUDA
-        verbose=1,
+        verbose=0, # without 0 it prints the every epoch loss
         callbacks=[
             Checkpoint(dirname=out_dir,f_pickle='best_chkpt.pkl'), # load_best=True
             EarlyStopping(patience=config['patience'])]
