@@ -96,7 +96,7 @@ def setup_config():
         # model specifics
         'model_type':'2CNN',
         'skorch_params':get_params(),
-        'epochs':5000, 
+        'epochs':3000, 
         'patience':500,
 
         # skorch search specifics
@@ -264,7 +264,7 @@ def main():
         n_jobs=-1, 
         cv=5,#cv, 
         random_state=1,
-        verbose=2 #2
+        verbose=10 #2
     )
 
     # learn stuff
