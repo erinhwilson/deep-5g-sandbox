@@ -179,6 +179,7 @@ class DNA_2CNN(nn.Module):
         linear_node_num = int(np.floor((linear_node_num - kernel_size2 + 1)/conv_pool_size2))
         linear_node_num = linear_node_num*num_filters2
         #linear_node_num = linear_node_num*num_filters1
+        print("final linear_node_num:", linear_node_num)
         
         self.conv_net = nn.Sequential(
             # Conv layer 1
@@ -243,7 +244,7 @@ class DNA_2CNN_Multi(nn.Module):
         linear_node_num = int(np.floor((linear_node_num - kernel_size2 + 1)/conv_pool_size2))
         linear_node_num = linear_node_num*num_filters2
         #linear_node_num = linear_node_num*num_filters1
-        
+
         self.conv_net = nn.Sequential(
             # Conv layer 1
             nn.Conv2d(1, num_filters1, kernel_size=(4,kernel_size1)),

@@ -88,8 +88,8 @@ def setup_config():
         'condition_file':'data/conditions_to_include.txt',
 
         # outputs
-        'out_dir':'skorch_test_mt',
-        'job_name':'skorch_randcv_mt',
+        'out_dir':'skorch_mt_all',
+        'job_name':'skorch_randcv_mt_all',
 
         # data specifics
         'id_col':'locus_tag',
@@ -99,7 +99,7 @@ def setup_config():
         # model specifics
         'model_type':'2CNN_Multi',
         'skorch_params':get_params(),
-        'epochs':3000, 
+        'epochs':300, 
         'patience':500,
 
         # skorch search specifics
@@ -238,7 +238,11 @@ def main():
         os.mkdir(out_dir)
 
     locus2info, XY_df, loc2seq, conditions, cond_dict = load_data(config)
+    # check target cols - if None, use all conditions
+    if target_cols == None:
+        target_cols = conditions 
     print("Done Loading.")
+
     
     # create default train/test/val splits
     full_train_df,test_df = tu.quick_split(XY_df)
