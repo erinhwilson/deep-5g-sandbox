@@ -58,7 +58,7 @@ def load_data(config):
 
 def get_params():
     # params specific for CNN of a certain type:
-        # current: models.py DNA_2CNN
+        # current: models.py DNA_2CNN_Multi
     params = {
         'lr': [0.0005, 0.0001,0.00005,0.00001],#loguniform(0.0001, 0.01)
         
@@ -88,16 +88,16 @@ def setup_config():
         'condition_file':'data/conditions_to_include.txt',
 
         # outputs
-        'out_dir':'skorch_test_noCu',
-        'job_name':'skorch_randcv_st_noCu',
+        'out_dir':'skorch_test_mt',
+        'job_name':'skorch_randcv_mt',
 
         # data specifics
         'id_col':'locus_tag',
         'seq_col':'upstream_region',
-        'target_col':'NoCu',
+        'target_cols':None,
         
         # model specifics
-        'model_type':'2CNN',
+        'model_type':'2CNN_Multi',
         'skorch_params':get_params(),
         'epochs':3000, 
         'patience':500,
@@ -138,7 +138,9 @@ def make_mt_skorch_dfs(df,seq_col='seq',target_cols=['highCu','noCu']):
 
 
 def get_model_choice(choice):
-    choices = ['LinearDeep', 'CNN', '2CNN', 'LSTM','CNNLSTM','Kmer']
+    choices = ['LinearDeep', 'CNN', '2CNN', 'LSTM','CNNLSTM','Kmer',
+               '2CNN_Multi'
+    ]
     
     # LINEAR
     if choice == 'LinearDeep':
@@ -149,6 +151,10 @@ def get_model_choice(choice):
         return m.DNA_CNN
     elif choice == "2CNN":
         return m.DNA_2CNN
+
+    # CNN Multi
+    elif choice == "2CNN_Multi":
+        return m.DNA_2CNN_Multi
 
     # LSTM
     elif choice == "LSTM":
@@ -212,7 +218,7 @@ def main():
     config = setup_config()
     id_col = config['id_col']
     seq_col = config['seq_col']
-    target_col = config['target_col']
+    target_cols = config['target_cols']
     out_dir = config['out_dir']
     if not os.path.isdir(out_dir):
         print(f"creating dir {out_dir}")
@@ -235,11 +241,11 @@ def main():
 
     # DECISION: single or multi task?
 
-    # +----------------+
-    # | SINGLE TASK WF |
-    # +----------------+
-    print(f"Running single task learning for {target_col}...")
-    X, y = make_st_skorch_dfs(full_train_df, seq_col=seq_col,target_col=target_col)
+    # +---------------+
+    # | MULTI TASK WF |
+    # +---------------+
+    print(f"Running MULTI task learning for {target_cols}...")
+    X, y = make_mt_skorch_dfs(full_train_df, seq_col=seq_col,target_cols=target_cols)
     print("X:",X.shape)
     print("y:",y.shape)
 
