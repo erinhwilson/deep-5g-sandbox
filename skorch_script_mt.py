@@ -208,6 +208,19 @@ def parity_plot(model_name,ytrue,ypred, pearson,rigid=False, out_dir="out_dir"):
     plt.title(f"{model_name} (pearson:{pearson:.3f})",fontsize=20)
     plt.savefig(f'{out_dir}/{model_name}_parity_plot.png',bbox_inches='tight')
 
+def check_mt_pred_results(y,ypred,title,cond_dict,out_dir='out_dir'):
+    '''
+    Check individual task predictions within MT?
+    '''
+    for i in cond_dict:
+        task=cond_dict[i]
+        subtitle = f"{task} - {title}"
+        print(f"task:{task}")
+        yi = y[:,i]
+        ypredi = ypred[:,i]
+
+        pr = scipy.stats.pearsonr(np.array(yi).flatten(),ypredi.flatten())
+        parity_plot(f"{subtitle}", yi, ypredi,pr[0],rigid=True,out_dir=out_dir)
 
 # #####################################################
 def main():
@@ -255,6 +268,7 @@ def main():
     net_search = NeuralNetRegressor(
         model_type,
         module__seq_len=300,
+        module__n_tasks=y.shape[1],
         max_epochs=config['epochs'],
         #lr=0.001,
         device=DEVICE,#'cuda',  # uncomment this to train with CUDA
@@ -270,7 +284,7 @@ def main():
         config['skorch_params'], 
         n_iter=config['search_iters'], 
         scoring='neg_mean_squared_error', 
-        n_jobs=-1, 
+        n_jobs=-1, # TODO: set this more explicitly
         cv=5,#cv, 
         random_state=1,
         verbose=10 #2
@@ -308,8 +322,9 @@ def main():
     res_df['opt_name'] = res_df['param_optimizer'].apply(lambda x: x.__name__)
     res_df.to_csv(f"{out_dir}/{config['job_name']}_skres_df.tsv",sep='\t', index=False)
 
+    # UPDATE FOR MT
     # viz train/test
-    Xtest, ytest = make_st_skorch_dfs(test_df, seq_col=seq_col,target_col=target_col)
+    Xtest, ytest = make_mt_skorch_dfs(test_df, seq_col=seq_col,target_cols=target_cols)
 
     # y pred and pearson on training data
     ypred_train_search = search.best_estimator_.predict(X)
@@ -317,12 +332,12 @@ def main():
 
     # y pred and pearson on test data
     ypred_test_search = search.best_estimator_.predict(Xtest)
-    p_test_search = scipy.stats.pearsonr(np.array(ytest).flatten(),ypred_test_search.flatten())[0]
 
     pp_train_str = f"{config['job_name']}_train"
     pp_test_str = f"{config['job_name']}_test"
-    parity_plot(pp_train_str, y, ypred_train_search,p_train_search,rigid=True,out_dir=out_dir)
-    parity_plot(pp_test_str, ytest, ypred_test_search,p_test_search,rigid=True,out_dir=out_dir)
+
+    check_mt_pred_results(y, ypred_train_search,"Multi CNN train skorch search", cond_dict,out_dir=out_dir)
+    check_mt_pred_results(ytest, ypred_test_search,"Multi CNN test skorch search", cond_dict,out_dir=out_dir)
 
     print("DONE!")
     
