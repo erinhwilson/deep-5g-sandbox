@@ -21,14 +21,20 @@ from scipy.stats import loguniform,uniform
 from skorch import NeuralNetRegressor
 from skorch.callbacks import EarlyStopping,Checkpoint
 
+
+
+# atempted DASK stuff?
+from dask.distributed import Client
+from joblib import parallel_backend
+client = Client('127.0.0.1:8786')
+client.upload_file("models.py")
+# client.upload_file("utils.py")
+# client.upload_file("torch_utils.py")
+
 import utils as u 
 import torch_utils as tu
 import models as m 
 
-# atempted DASK stuff?
-# from dask.distributed import Client
-# from joblib import parallel_backend
-# client = Client('127.0.0.1:8786')
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("Device:",DEVICE)
@@ -300,9 +306,9 @@ def main():
     )
 
     # learn stuff
-    #with parallel_backend('dask'):
-    print("Fitting...")
-    search.fit(X,y)
+    with parallel_backend('dask'):
+        print("Fitting...")
+        search.fit(X,y)
 
     # print stuff
     print(search.best_params_)
