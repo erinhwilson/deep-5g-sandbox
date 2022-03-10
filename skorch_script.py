@@ -85,8 +85,8 @@ def setup_config():
         'condition_file':'data/conditions_to_include.txt',
 
         # outputs
-        'out_dir':'skorch_test_noCu',
-        'job_name':'skorch_randcv_st_noCu',
+        'out_dir':'skorch_test_noCu_cv3',
+        'job_name':'skorch_randcv_st_noCu_cv3',
 
         # data specifics
         'id_col':'locus_tag',
@@ -262,9 +262,9 @@ def main():
         n_iter=config['search_iters'], 
         scoring='neg_mean_squared_error', 
         n_jobs=-1, 
-        cv=5,#cv, 
+        cv=3,#cv, #CHANGED FROM 5
         random_state=1,
-        verbose=10 #2
+        verbose=100 #2
     )
 
     # learn stuff
