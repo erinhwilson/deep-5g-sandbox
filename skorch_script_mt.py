@@ -22,17 +22,17 @@ from skorch import NeuralNetRegressor
 from skorch.callbacks import EarlyStopping,Checkpoint
 
 
-print("PRE-DASK")
-# atempted DASK stuff?
-from dask.distributed import Client
-from joblib import parallel_backend
-print("Post-DASK import")
-client = Client('127.0.0.1:8786')
-print("Post-DASK client start")
-client.upload_file("models.py")
-# client.upload_file("utils.py")
-# client.upload_file("torch_utils.py")
-print("Post-DASK client upload")
+# print("PRE-DASK")
+# # atempted DASK stuff?
+# from dask.distributed import Client
+# from joblib import parallel_backend
+# print("Post-DASK import")
+# client = Client('127.0.0.1:8786')
+# print("Post-DASK client start")
+# client.upload_file("models.py")
+# # client.upload_file("utils.py")
+# # client.upload_file("torch_utils.py")
+# print("Post-DASK client upload")
 
 import utils as u 
 import torch_utils as tu
@@ -309,9 +309,9 @@ def main():
     )
 
     # learn stuff
-    with parallel_backend('dask'):
-        print("Fitting...")
-        search.fit(X,y)
+    #with parallel_backend('dask'):
+    print("Fitting...")
+    search.fit(X,y)
 
     # print stuff
     print(search.best_params_)
