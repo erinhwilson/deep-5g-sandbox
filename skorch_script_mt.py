@@ -59,6 +59,9 @@ def load_data(config):
     XY_df['gene'] = XY_df[id_col].apply(lambda x: locus2info[x]['gene'])
     XY_df['product'] = XY_df[id_col].apply(lambda x: locus2info[x]['product'])
 
+    # load TPM tsv to use for filtering out lowly expressed genes
+    tpm_df = pd.read_csv(config['filter_tpm_file'],sep='\t')
+
     # dict of locus to sequence
     loc2seq = dict([(x,z) for (x,z) in XY_df[[id_col,seq_col]].values])
 
@@ -69,7 +72,7 @@ def load_data(config):
     cond_dict = dict(enumerate(conditions))
     cond_dict
 
-    return locus2info, XY_df, loc2seq, conditions, cond_dict
+    return locus2info, XY_df, tpm_df, loc2seq, conditions, cond_dict
 
 def get_opts(opts):
     '''
@@ -216,6 +219,25 @@ def get_model_choice(choice):
     else:
         raise ValueError(f"{choice} model choice not recognized. Options are: {choices}")
 
+
+def filter_low_txn_genes(XY_df,tpm_df,conditions,thresh=0.0):
+    '''
+    Given a df of gene TPMs, determine which dont' ever express above a certain
+    threshold and remove from modeling
+    '''
+
+    low_txn_genes = []
+
+    for i, row, in tpm_df.iterrows():
+        tpms = row[conditions].values
+        if max(tpms) < thresh:
+            low_txn_genes.append(row['locus_tag'])
+
+    XY_final = XY_df[~XY_df['locus_tag'].isin(low_txn_genes)].reset_index().drop('index',axis=1)
+
+    return XY_final
+
+
 def quick_loss_plot_simple(data_label_list,out_file,loss_type="MSE Loss",sparse_n=0):
     '''
     For each train/test loss trajectory, plot loss by epoch
@@ -289,12 +311,16 @@ def main():
         print(f"creating dir {out_dir}")
         os.mkdir(out_dir)
 
-    locus2info, XY_df, loc2seq, conditions, cond_dict = load_data(config)
+    locus2info, XY_df, tpm_df, loc2seq, conditions, cond_dict = load_data(config)
     # check target cols - if None, use all conditions
     if target_cols == None:
         target_cols = conditions 
     print("Done Loading.")
 
+    print("Full df shape:", XY_df.shape)
+    print(f"Filtering genes with txn below {config['low_txn_thresh']}...")
+    XY_df = filter_low_txn_genes(XY_df,tpm_df,conditions,thresh=config['low_txn_thresh'])
+    print("Filtered df shape:", XY_df.shape)
     
     # create default train/test/val splits
     full_train_df,test_df = tu.quick_split(XY_df)
@@ -315,8 +341,8 @@ def main():
     # +---------------+
     print(f"Running MULTI task learning for {target_cols}...")
     X, y = make_mt_skorch_dfs(full_train_df, seq_col=seq_col,target_cols=target_cols)
-    print("X:",X.shape)
-    print("y:",y.shape)
+    print("X train:",X.shape)
+    print("y train:",y.shape)
 
     # make skorch object
     model_type = get_model_choice(config['model_type'])
