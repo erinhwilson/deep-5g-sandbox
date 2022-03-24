@@ -1,0 +1,26 @@
+# config of hypersearch
+
+# data inputs
+expression_file: data/XY_logTPM_opFilt.tsv
+locus_info_file: data/locus2info.tsv
+condition_file: data/conditions_to_include.txt
+filter_tpm_file: data/XY_TPM_opFilt.tsv
+
+# outputs
+out_dir: skorch_mt_lowEx
+job_name: skorch_mt_lowEx
+
+# data specifics
+id_col: locus_tag
+seq_col: upstream_region
+target_cols: None
+low_txn_thresh: 2.0
+
+# model specifics
+model_type: 2CNN_Multi
+param_file:  params.yaml
+epochs: 3000 
+patience: 500
+
+# skorch search specifics
+search_iters: 1000 

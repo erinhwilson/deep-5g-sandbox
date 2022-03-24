@@ -1,6 +1,7 @@
 # attempt to recreate slurm-able skorch script
 # for a multitask learning setting
 
+import argparse
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -13,6 +14,7 @@ import pandas as pd
 import pickle
 import seaborn as sns
 import scipy
+import yaml
 
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from scipy.stats import loguniform,uniform
@@ -69,57 +71,86 @@ def load_data(config):
 
     return locus2info, XY_df, loc2seq, conditions, cond_dict
 
+def get_opts(opts):
+    '''
+    Given a list of optimizer names as strings, return the torch.optim object.
+    (Is there a way to specify the optimizer via string in PyTorch?)
+    '''
+    optimizers = {
+        'Adam': torch.optim.Adam,
+        'AdamW' : torch.optim.AdamW,
+        'Adagrad' : torch.optim.Adagrad,
+        'RMSprop' : torch.optim.RMSprop,
+        'SGD' : torch.optim.SGD,
+    }
+    for opt in opts:
+        if opt not in optimizers:
+            raise ValueError(f"{opt} optimizer not in list of options. Currently available: {optimizers.keys()}")
+    else:
+        return [optimizers[opt] for opt in opts]
 
-def get_params():
+
+def get_params(filename):
     # params specific for CNN of a certain type:
         # current: models.py DNA_2CNN_Multi
-    params = {
-        'lr': [0.0005, 0.0001,0.00005,0.00001],#loguniform(0.0001, 0.01)
+    # params = {
+    #     'lr': [0.0005, 0.0001,0.00005,0.00001],#loguniform(0.0001, 0.01)
         
-        'module__num_filters1': [16,32,64,128], # uniform(8,128), #
-        'module__num_filters2': [16,32,64,128],
+    #     'module__num_filters1': [16,32,64,128], # uniform(8,128), #
+    #     'module__num_filters2': [16,32,64,128],
         
-        'module__kernel_size1': [6,8,12,16,32],
-        'module__kernel_size2': [6,8,12,16,32],
+    #     'module__kernel_size1': [6,8,12,16,32],
+    #     'module__kernel_size2': [6,8,12,16,32],
         
-        'module__conv_pool_size1': [1,3,6,12],
-        'module__fc_node_num1': [10, 25, 50,100], #randint(10,100), #
+    #     'module__conv_pool_size1': [1,3,6,12],
+    #     'module__fc_node_num1': [10, 25, 50,100], #randint(10,100), #
         
-        'module__dropout1': [0.0,0.2,0.5],
-        'module__dropout2': [0.0,0.2,0.5],
+    #     'module__dropout1': [0.0,0.2,0.5],
+    #     'module__dropout2': [0.0,0.2,0.5],
         
-        'optimizer':[torch.optim.SGD, torch.optim.Adam, torch.optim.Adagrad,torch.optim.AdamW,torch.optim.RMSprop]
-    }
+    #     'optimizer':[torch.optim.SGD, torch.optim.Adam, torch.optim.Adagrad,torch.optim.AdamW,torch.optim.RMSprop]
+    # }
 
+    with open(filename) as f:
+        params = yaml.load(f, Loader=yaml.FullLoader)
+
+    params['optimizer'] = get_opts(params['optimizer'])
+    
     return params 
 
-def setup_config():
 
-    config = {
-        # data inputs
-        'expression_file':'data/XY_logTPM_opFilt.tsv',
-        'locus_info_file':'data/locus2info.tsv',
-        'condition_file':'data/conditions_to_include.txt',
+def setup_config(filename):
 
-        # outputs
-        'out_dir':'skorch_mt_all',
-        'job_name':'skorch_randcv_mt_all',
+    # config = {
+    #     # data inputs
+    #     'expression_file':'data/XY_logTPM_opFilt.tsv',
+    #     'locus_info_file':'data/locus2info.tsv',
+    #     'condition_file':'data/conditions_to_include.txt',
 
-        # data specifics
-        'id_col':'locus_tag',
-        'seq_col':'upstream_region',
-        'target_cols':None,
+    #     # outputs
+    #     'out_dir':'skorch_mt_all',
+    #     'job_name':'skorch_randcv_mt_all',
+
+    #     # data specifics
+    #     'id_col':'locus_tag',
+    #     'seq_col':'upstream_region',
+    #     'target_cols':None,
         
-        # model specifics
-        'model_type':'2CNN_Multi',
-        'skorch_params':get_params(),
-        'epochs':300, 
-        'patience':500,
+    #     # model specifics
+    #     'model_type':'2CNN_Multi',
+    #     'param_file': 'params.yaml',
+    #     'epochs':300, 
+    #     'patience':500,
 
-        # skorch search specifics
-        'search_iters':1000, 
+    #     # skorch search specifics
+    #     'search_iters':1000, 
         
-    }
+    # }
+
+    with open(filename) as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+
+    config['skorch_params'] = get_params(config['param_file']),
 
     return config
 
@@ -238,14 +269,21 @@ def check_mt_pred_results(y,ypred,title,cond_dict,out_dir='out_dir'):
 
 # #####################################################
 def main():
+    parser = argparse.ArgumentParser(description='Run hyperparam search with skorch and sklearn.')
+    
+    # Required args
+    parser.add_argument('config_file', help='config file specified as yaml')
+
+    args = parser.parse_args()
 
     # +----------------------+
     # | Load data and config |
     # +----------------------+
-    config = setup_config()
+    config = setup_config(args.config_file)
+
     id_col = config['id_col']
     seq_col = config['seq_col']
-    target_cols = config['target_cols']
+    target_cols = None if config['target_cols'] == "None" else config['target_cols']
     out_dir = config['out_dir']
     if not os.path.isdir(out_dir):
         print(f"creating dir {out_dir}")
@@ -285,7 +323,7 @@ def main():
 
     net_search = NeuralNetRegressor(
         model_type,
-        module__seq_len=300,
+        module__seq_len=seq_len,
         module__n_tasks=y.shape[1],
         max_epochs=config['epochs'],
         #lr=0.001,
@@ -305,7 +343,7 @@ def main():
         n_jobs=-1, # TODO: set this more explicitly
         cv=5,#cv, 
         random_state=1,
-        verbose=10 #2
+        verbose=100 #2
     )
 
     # learn stuff
