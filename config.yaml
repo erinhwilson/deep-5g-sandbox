@@ -1,26 +1,32 @@
 # config of hypersearch
 
 # data inputs
-expression_file: data/XY_logTPM_opFilt.tsv
-locus_info_file: data/locus2info.tsv
-condition_file: data/conditions_to_include.txt
-filter_tpm_file: data/XY_TPM_opFilt.tsv
+# expression_file: data/XY_logTPM_opFilt.tsv
+# locus_info_file: data/locus2info.tsv
+# condition_file: data/conditions_to_include.txt
+# filter_tpm_file: data/XY_TPM_opFilt.tsv
+
+# data inputs for iModulons
+imod_info_m: ec_iMod_out/ecoli_seq_M_opFilt.tsv
+M_matrix: ec_iMod_out/iMod_download/M.csv
+gene_presence_matrix: ec_iMod_out/iMod_download/gene_presence_matrix.csv
+imod_count_thresh: 4
 
 # outputs
-out_dir: skorch_mt_lowEx
-job_name: skorch_mt_lowEx
+out_dir: hp_search_ecoli_imods_all
+job_name: hp_search_ecoli_imods_all
 
 # data specifics
 id_col: locus_tag
 seq_col: upstream_region
-target_cols: None
-low_txn_thresh: 2.0
+#target_cols: None
+#low_txn_thresh: 2.0
 
 # model specifics
-model_type: 2CNN_Multi
+model_type: DNA_2CNN_2FC_Multi
 param_file:  params.yaml
-epochs: 3000 
-patience: 500
+epochs: 5000 
+patience: 1000
 
 # skorch search specifics
-search_iters: 1000 
+search_iters: 500 
