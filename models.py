@@ -487,3 +487,105 @@ class DNA_CNNLSTM(nn.Module):
             print("LSTM->FC out shape:",out.shape)        
         
         return out
+
+    
+class DNA_2CNN_2FC_Multi(nn.Module):
+    def __init__(self,
+                 seq_len,
+                 n_tasks,
+                 num_filters1=32,
+                 num_filters2=32,
+                 kernel_size1=8,
+                 kernel_size2=8,
+                 conv_pool_size1=1, # default no pooling
+                 conv_pool_size2=1,
+                 fc_node_num1 = 10,
+                 fc_node_num2 = 10,
+                 dropout1 = 0.2,
+                 dropout2 = 0.2,
+                ):
+        super().__init__()
+        
+        self.seq_len = seq_len
+        self.n_tasks = n_tasks
+        
+        # calculation for number of linear nodes need to come after final conv layer
+        linear_node_num = int(np.floor((seq_len - kernel_size1 + 1)/conv_pool_size1))
+        linear_node_num = int(np.floor((linear_node_num - kernel_size2 + 1)/conv_pool_size2))
+        linear_node_num = linear_node_num*num_filters2
+        #linear_node_num = linear_node_num*num_filters1
+
+        self.conv_net = nn.Sequential(
+            # Conv layer 1
+            nn.Conv2d(1, num_filters1, kernel_size=(4,kernel_size1)),
+            # ^^ changed from 4 to 1 channel??
+            nn.ReLU(),
+            nn.MaxPool2d((1,conv_pool_size1)), # def stride = kernel_size
+            nn.Dropout(dropout1),
+
+            # Conv layer 2
+            nn.Conv2d(num_filters1, num_filters2, kernel_size=(1,kernel_size2)),
+            nn.ReLU(),
+            nn.Dropout(dropout2),
+            
+            nn.Flatten(),
+            # Fully connected layer 1
+            nn.Linear(linear_node_num, fc_node_num1),
+            nn.ReLU(),
+            # Fully connected layer 2
+            nn.Linear(fc_node_num1, fc_node_num2),
+            nn.ReLU(),
+            # final prediction
+            nn.Linear(fc_node_num2, n_tasks),
+        ) 
+
+    def forward(self, xb):
+        # reshape view to batch_ssize x 4channel x seq_len
+        # permute to put channel in correct order
+        
+        #xb = xb.permute(0,2,1) 
+        # OHE FIX??
+        
+        xb = xb.permute(0,2,1).unsqueeze(1)
+        # ^^ Conv2D input fix??
+        
+        out = self.conv_net(xb)
+        return out
+    
+class DNA_CNN_Multi(nn.Module):
+    def __init__(self,
+                 seq_len,
+                 n_tasks,
+                 num_filters1=31,
+                 kernel_size1=5,
+                 fc_node_num1=100,
+                 fc_node_num2=10
+                ):
+        super().__init__()
+        self.seq_len = seq_len
+        self.n_tasks = n_tasks
+        self.lin_nodes = num_filters1*(seq_len-kernel_size1+1)
+        
+        self.conv_net = nn.Sequential(
+            nn.Conv2d(1, num_filters1, kernel_size=(4,kernel_size1)),
+            # ^^ changed from 4 to 1 channel??
+            #nn.ReLU(inplace=True),
+            nn.Flatten(),
+            nn.Linear(self.lin_nodes, fc_node_num1),
+            nn.Linear(fc_node_num1, fc_node_num2),
+            # define the multi task objectives?
+            nn.Linear(fc_node_num2,n_tasks)
+        )
+        
+    def forward(self, xb):
+        # reshape view to batch_ssize x 4channel x seq_len
+        # permute to put channel in correct order
+        #xb = xb.view(-1,self.seq_len,4).permute(0,2,1) 
+        #xb = xb.permute(0,2,1) 
+        # OHE FIX??
+        
+        xb = xb.permute(0,2,1).unsqueeze(1)
+        # ^^ Conv2D input fix??
+        
+        out = self.conv_net(xb)
+        return out

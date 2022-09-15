@@ -55,7 +55,7 @@ def load_data(
         sample2cond_file, 
         sample_file, 
         condition_file,
-        coded_meta_file
+        coded_meta_file=None
         ):
     '''
     Wrapper function to load data from files into relavent objects
@@ -97,8 +97,12 @@ def load_data(
         conditions = list(set([sample2condition[x] for x in sample2condition]))
 
     # load coded metadata file
-    meta_df = pd.read_csv(coded_meta_file,sep='\t')
-    meta_df['sample'] = meta_df['#sample']+'_tpm'
+    if coded_meta_file:
+        print("Warning: using a 'coded metadata file' is a feature currently hard coded for adjusting 5G data file and does not generalize to other organisms!")
+        meta_df = pd.read_csv(coded_meta_file,sep='\t')
+        meta_df['sample'] = meta_df['#sample']+'_tpm'
+    else:
+        meta_df = None
 
     return loc2seq, op_leads, tpm_df, sample2condition, samples, conditions, meta_df
 
