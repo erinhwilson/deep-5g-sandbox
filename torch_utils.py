@@ -180,6 +180,33 @@ def build_dataloaders_single(train_df,
     
     return dls
 
+
+def make_st_skorch_dfs(df,seq_col='seq',target_col='score'):
+    '''
+    Make basic X,y matrix,vec for skorch fit() loop.
+    '''
+    seqs = list(df[seq_col].values)        
+    ohe_seqs = torch.stack([torch.tensor(u.one_hot_encode(x)) for x in seqs])
+
+    labels = torch.tensor(list(df[target_col].values)).unsqueeze(1)
+    # had to unsqueeze here or else errors later
+    
+    return ohe_seqs.float(), labels.float()
+
+
+def make_mt_skorch_dfs(df,seq_col='seq',target_cols=['highCu','noCu']):
+    '''
+    Make multi-task X,y matrix,vec for skorch fit() loop.
+    '''
+    seqs = list(df[seq_col].values)        
+    ohe_seqs = torch.stack([torch.tensor(u.one_hot_encode(x)) for x in seqs])
+
+    # number of labels = len(target_cols)
+    labels = torch.tensor(list(df[target_cols].values))
+    # bad dimension? fixed in model.forward for now
+    
+    return ohe_seqs.float(), labels.float()
+
 # +-------------------------------------------+
 # | Classification group assignment functions |
 # +-------------------------------------------+
@@ -248,10 +275,16 @@ def loss_batch(model, loss_func, xb, yb, opt=None,verbose=False):
         print("yb.long:",yb.long().shape)
     
     #loss = loss_func(xb_out, yb.float()) # for MSE/regression
-    loss = loss_func(xb_out, yb.long().squeeze(1))
-    # ^^ changes for CrossEntropyLoss...
+    #loss = loss_func(xb_out, yb.long().squeeze(1))
+        # ^^ changes for CrossEntropyLoss...
+        
+    #print("shape yb into loss:",yb.float().squeeze(1).shape)
+    loss = loss_func(xb_out, yb.float().squeeze(1))
+        # ^^ changes for BCEWithLogitsLoss...?
+    #print("loss",loss)
 
     if opt is not None: # if opt
+        #print('opt:',opt)
         loss.backward()
         opt.step()
         opt.zero_grad()
@@ -375,7 +408,7 @@ def fit(epochs, model, loss_func, opt, train_dl, val_dl,device,patience=1000):
     return train_losses, val_losses,estop,best_val_score
 
 
-def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20, opt=None):
+def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20, opt=None,patience=1000):
     '''
     Given data and a model type, run dataloaders with MSE loss and SGD opt
     '''
@@ -390,7 +423,7 @@ def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20, opt=
     train_losses, \
     val_losses,\
     epoch_stop,\
-    best_val_score = fit(epochs, model, loss_func, optimizer, train_dl, val_dl,device)
+    best_val_score = fit(epochs, model, loss_func, optimizer, train_dl, val_dl,device,patience=patience)
 
     #return model, train_losses, test_losses
     return train_losses, val_losses, epoch_stop, best_val_score
@@ -486,10 +519,11 @@ def parity_pred(models, seqs, oracle,task,alt=True):
 
     return dfs
 
-def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0):
+def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0,figsize=(10,5)):
     '''
     For each train/test loss trajectory, plot loss by epoch
     '''
+    plt.figure(figsize=figsize)
     for i,((train_data,test_data),label,epoch_stop,best_val) in enumerate(data_label_list):
         # plot only 1 in every sparse_n points
         if sparse_n:
