@@ -10,7 +10,8 @@
 imod_info_m: ec_iMod_out/ecoli_seq_M_opFilt.tsv
 M_matrix: ec_iMod_out/iMod_download/M.csv
 gene_presence_matrix: ec_iMod_out/iMod_download/gene_presence_matrix.csv
-imod_count_thresh: 4
+#imod_count_thresh: 4
+topn: 4
 
 # outputs
 out_dir: hp_search_ecoli_imods_all
