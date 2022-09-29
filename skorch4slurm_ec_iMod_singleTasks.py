@@ -309,16 +309,7 @@ def alt_cls_summary2(df):
             spacing=0
         )
 
-def view_cls_report(sk_model,Xs,ys,imods):
-    '''
-    For a given model and set of X,y examples, save and display 
-    a summary of the primary classification metrics
-    '''
-    # get the predictions and classification report
-    y_preds = sk_model.predict(Xs)
-    cls_rep = classification_report(ys, y_preds,target_names=imods,output_dict=True)
-    
-    # conver the dict into a df fdef view_cls_report(sk_model,Xs,ys,imod_tasks,st=False,pos_label=1.0):
+def view_cls_report(sk_model,Xs,ys,imod_tasks,st=False,pos_label=1.0):
     '''
     For a given model and set of X,y examples, save and display 
     a summary of the primary classification metrics
@@ -340,7 +331,7 @@ def view_cls_report(sk_model,Xs,ys,imods):
         support = len([x for x in ys if x==pos_label])
         imod = imod_tasks[0]
         cls_df = pd.DataFrame([[imod,p,r,f,support]],columns=['imod','precision','recall','f1-score','support'])
-        display(cls_df)
+        #display(cls_df)
         
         # display raw and normalized conf matrix
         mats = []
@@ -365,14 +356,15 @@ def view_cls_report(sk_model,Xs,ys,imods):
 
         f.suptitle(f"iMod {imod}",fontsize=20)
         plt.tight_layout()
-
+        #plt.savefig(out_file,bbox_inches='tight')
+        chart = f
         
     else:
         cls_rep = classification_report(ys, y_preds,target_names=imod_tasks,output_dict=True)    
     
         # convert the dict into a df for viewing
         cls_df = pd.DataFrame.from_dict(cls_rep,orient='index')
-        display(cls_df)
+        #display(cls_df)
         cls_df.index.name='imod'
         cls_df = cls_df.reset_index()
     
@@ -389,9 +381,9 @@ def view_cls_report(sk_model,Xs,ys,imods):
             value_name='score')
 
         #alt_cls_summary(cls_melt)
-        display(alt_cls_summary2(cls_melt))
+        chart = alt_cls_summary2(cls_melt)
 
-    return cls_df
+    return cls_df,chart
 
 # #####################################################
 def main():
@@ -525,11 +517,24 @@ def main():
         res_df.to_csv(f"{out_dir}/iMod{target}/skres_df.tsv",sep='\t', index=False)
 
         # Create classification reports for full train and test
-        cls_full_train_df,full_train_metric_chart = view_cls_report(search.best_estimator_,Xtrain_strat,ytrain_strat,target_cols,st=True)
-        full_train_metric_chart.save(f"{out_dir}/iMod{target}/best_est_full_train_metric_chart.html")
+        st_mode = config['task_mode'] == 'single'
         
-        cls_test_df,test_metric_chart = view_cls_report(search.best_estimator_,Xtest_strat,ytest_strat,target_cols,st=True)
-        test_metric_chart.save(f"{out_dir}/iMod{target}/best_est_test_metric_chart.html")
+        out_filebase = f"{out_dir}/iMod{target}"
+        # matplot lib confusion matrix for single task
+        if st_mode: 
+            cls_full_train_df,full_train_metric_chart = view_cls_report(search.best_estimator_,Xtrain_strat,ytrain_strat,[target],st=st_mode)
+            cls_test_df,test_metric_chart = view_cls_report(search.best_estimator_,Xtest_strat,ytest_strat,[target],st=st_mode)
+        
+            full_train_metric_chart.savefig(f"{out_filebase}/best_est_full_train_confmat.png")
+            test_metric_chart.savefig(f"{out_filebase}/best_est_test_confmat.png")
+        
+        # altair multi-task metric chart
+        else: 
+            cls_full_train_df,full_train_metric_chart = view_cls_report(search.best_estimator_,Xtrain_strat,ytrain_strat,target_cols,st=st_mode)
+            cls_test_df,test_metric_chart = view_cls_report(search.best_estimator_,Xtest_strat,ytest_strat,target_cols,st=st_mode)
+        
+            full_train_metric_chart.save(f"{out_filebase}/best_est_full_train_metric_chart.html")
+            test_metric_chart.save(f"{out_filebase}/best_est_test_metric_chart.html")
 
 
     print("DONE!")
