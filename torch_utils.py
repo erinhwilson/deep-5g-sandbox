@@ -9,7 +9,7 @@ import random
 random.seed(7)
 import tqdm
 
-from sklearn.metrics import f1_score,precision_score,recall_score,accuracy_score,precision_recall_curve,matthews_corrcoef
+from sklearn.metrics import f1_score,precision_score,recall_score,accuracy_score,precision_recall_curve,matthews_corrcoef,r2_score
 
 import torch
 from torch.utils.data import Dataset,DataLoader #,TensorDataset
@@ -274,14 +274,24 @@ def loss_batch(model, loss_func, xb, yb, opt=None,verbose=False):
         print("yb:",yb.shape)
         print("yb.long:",yb.long().shape)
     
-    #loss = loss_func(xb_out, yb.float()) # for MSE/regression
-    #loss = loss_func(xb_out, yb.long().squeeze(1))
+    # determine formatting of yb for loss function
+    # determined by Erin's trial and error >.<
+    loss_str = str(loss_func)
+    if loss_str in ['MSELoss()']:
+        loss = loss_func(xb_out, yb.float()) # for MSE/regression
+    elif loss_str in ['CrossEntropyLoss()']:
+        loss = loss_func(xb_out, yb.long().squeeze(1))
         # ^^ changes for CrossEntropyLoss...
+    elif loss_str in ['BCEWithLogitsLoss()']:
+        #print("shape yb into loss:",yb.float().squeeze(1).shape)
+        loss = loss_func(xb_out, yb.float().squeeze(1))
+            # ^^ changes for BCEWithLogitsLoss...?
+    else:
+        print(f"Warning: I don't know if loss function {loss_str} needs special formatting. Using MSE format for now!")
+        loss = loss_func(xb_out, yb.float()) # for MSE/regression
         
-    #print("shape yb into loss:",yb.float().squeeze(1).shape)
-    loss = loss_func(xb_out, yb.float().squeeze(1))
-        # ^^ changes for BCEWithLogitsLoss...?
-    #print("loss",loss)
+    if verbose:
+        print("loss",loss)
 
     if opt is not None: # if opt
         #print('opt:',opt)
@@ -462,44 +472,71 @@ def quick_seq_pred(model, seqs, oracle):
         diff = actual - pred.item()
         print(f"{dna}: pred:{pred.item():.3f} actual:{actual:.3f} ({diff:.3f})")
 
+# trying to replace with function below
+# def parity_plot(model_name,pred_df):
+#     '''
+#     Given a dataframe of samples with their true and predicted values,
+#     make a scatterplot.
+#     '''
+#     plt.scatter(pred_df['truth'].values, pred_df['pred'].values, alpha=0.2)
+    
+#     # y=x line
+#     xpoints = ypoints = plt.xlim()
+#     plt.plot(xpoints, ypoints, linestyle='--', color='k', lw=2, scalex=False, scaley=False)
 
-def parity_plot(model_name,df, pearson):
-    '''
-    Given a dataframe of samples with their true and predicted values,
-    make a scatterplot.
-    '''
-    plt.scatter(df['truth'].values, df['pred'].values, alpha=0.2)
+#     plt.ylim(xpoints)
+#     plt.ylabel("Predicted Score",fontsize=14)
+#     plt.xlabel("Actual Score",fontsize=14)
+#     plt.title(f"{model_name} (pearson:{pearson:.3f})",fontsize=20)
+#     plt.show()
+
+def parity_plot(model_title,ytrue,ypred,rigid=True,title=None):
+    plt.scatter(ytrue, ypred, alpha=0.2)
+    
+    r2 = r2_score(ytrue,ypred)
+    
+    if not title:
+        title = model_title
     
     # y=x line
     xpoints = ypoints = plt.xlim()
+    if rigid:
+        plt.ylim(min(xpoints),max(xpoints)) 
     plt.plot(xpoints, ypoints, linestyle='--', color='k', lw=2, scalex=False, scaley=False)
 
-    plt.ylim(xpoints)
-    plt.ylabel("Predicted Score",fontsize=14)
     plt.xlabel("Actual Score",fontsize=14)
-    plt.title(f"{model_name} (pearson:{pearson:.3f})",fontsize=20)
+    plt.ylabel("Predicted Score",fontsize=14)
+    plt.title(f"{title} (r2:{r2:.3f})",fontsize=20)
     plt.show()
     
-def alt_parity_plot(model,df, pearson,task):
+    
+def alt_parity_plot(model_name,pred_df,task):
     '''
     Make an interactive parity plot with altair
     '''
-    chart = alt.Chart(df).mark_circle(opacity=0.2).encode(
+    ytrue = pred_df['truth'].values
+    ypred = pred_df['pred'].values
+    r2 = r2_score(ytrue,ypred)
+    
+    chart = alt.Chart(pred_df).mark_circle(opacity=0.2).encode(
         alt.X('pred:Q'),
         alt.Y('truth:Q'),
         tooltip=['seq:N']
     ).properties(
-        title=f'Model (pearson:{pearson})'
+        title=f'{task} {model_name} (r2:{r2})'
     ).interactive()
     
-    chart.save(f'alt_out/parity_plot_{task}_{model}.html')
+    chart.save(f'alt_out/parity_plot_{task}_{model_name}.html')
     
 
-def parity_pred(models, seqs, oracle,task,alt=True):
-    '''Given some sequences, get the model's predictions '''
+def parity_pred_seqs(models, seqs, oracle,task,alt=True):
+    '''
+    Given some short sequences (e.g. a synthetic practice
+    task, get the model's predictions and plot parity
+    '''
     dfs = {} # key: model name, value: parity_df
     
-    
+    # TODO: fix this so it doesn't loop through each seq?
     for model_name,model in models:
         print(f"Running {model_name}")
         data = []
@@ -508,16 +545,50 @@ def parity_pred(models, seqs, oracle,task,alt=True):
             actual = oracle[dna]
             pred = model(s.float())
             data.append([dna,actual,pred.item()])
-        df = pd.DataFrame(data, columns=['seq','truth','pred'])
-        pearson = df['truth'].corr(df['pred'])
-        dfs[model_name] = (pearson,df)
+        pred_df = pd.DataFrame(data, columns=['seq','truth','pred'])
+        #pearson = df['truth'].corr(df['pred'])
+        dfs[model_name] = (pred_df)
         
         #plot parity plot
         if alt: # make an altair plot
-            alt_parity_plot(model_name, df, pearson,task)
-        parity_plot(model_name, df, pearson)
+            alt_parity_plot(model_name, pred_df,task)
+        parity_plot(model_name, pred_df['truth'],pred_df['pred'])
 
     return dfs
+
+def parity_pred_loci(models,df,device,locus_col='locus_tag',seq_col='seq',target_col="score",alt=True):
+    '''
+    Given some X examples of gene loci and y labels, get the model's predictions
+    for X and plot vs the actual y
+    '''
+    loci = df[locus_col].values
+    seqs = list(df[seq_col].values)        
+    ohe_seqs = torch.stack([torch.tensor(u.one_hot_encode(x)) for x in seqs]).to(device)
+    labels = torch.tensor(list(df[target_col].values)).unsqueeze(1)
+    
+    dfs = {} # key: model name, value: parity_df
+    
+    for model_name,model in models:
+        pred_df = df[[locus_col]]
+        pred_df['truth'] = df[target_col]
+        print(f"Running {model_name}")
+        
+        preds = model(ohe_seqs.float()).tolist()
+        pred_df['pred'] = [x[0] for x in preds]
+        
+        dfs[model_name] = pred_df
+        
+        # plot stuff
+        ytrue = pred_df['truth'].values
+        ypred = pred_df['pred'].values
+        
+        if alt: # make an altair plot
+            alt_parity_plot(model_name, pred_df,target_col)
+        parity_plot(model_name, ytrue,ypred)
+        
+    return dfs
+
+
 
 def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0,figsize=(10,5)):
     '''
