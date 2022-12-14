@@ -175,7 +175,8 @@ def build_dataloaders_single(train_df,
 
         # Put DataSets into DataLoaders
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle,sampler=sampler)
-        test_dl = DataLoader(test_ds, batch_size=batch_size * 2)
+        #test_dl = DataLoader(test_ds, batch_size=batch_size * 2)
+        test_dl = DataLoader(test_ds, batch_size=batch_size) # why was *2 ever used?
         dls[ds.id] = (train_dl,test_dl)
     
     return dls
@@ -371,7 +372,7 @@ def val_step(model, val_dl, loss_func, device):
 
 #     return train_losses, test_losses
 
-def fit(epochs, model, loss_func, opt, train_dl, val_dl,device,patience=1000):
+def fit(epochs, model, loss_func, opt, train_dl, val_dl,device,patience=1000,load_best=False):
     '''
     Fit the model params to the training data, eval on unseen data.
     Loop for a number of epochs and keep train of train and val losses 
@@ -412,13 +413,14 @@ def fit(epochs, model, loss_func, opt, train_dl, val_dl,device,patience=1000):
     best_val_score = early_stopping.val_loss_min 
 
     # load the last checkpoint with the best model
-    model.load_state_dict(torch.load('checkpoint.pt'))
-    # ^^ Does this need to be returned? I dont' think so... loads in place
+    if load_best:
+        model.load_state_dict(torch.load('checkpoint.pt'))
+        # ^^ Does this need to be returned? I dont' think so... loads in place
 
     return train_losses, val_losses,estop,best_val_score
 
 
-def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20, opt=None,patience=1000):
+def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20, opt=None,patience=1000,load_best=False):
     '''
     Given data and a model type, run dataloaders with MSE loss and SGD opt
     '''
@@ -433,7 +435,8 @@ def run_model(train_dl,val_dl, model, loss_func, device,lr=0.01, epochs=20, opt=
     train_losses, \
     val_losses,\
     epoch_stop,\
-    best_val_score = fit(epochs, model, loss_func, optimizer, train_dl, val_dl,device,patience=patience)
+    best_val_score = fit(epochs, model, loss_func, optimizer, train_dl, val_dl,
+                         device,patience=patience, load_best=load_best)
 
     #return model, train_losses, test_losses
     return train_losses, val_losses, epoch_stop, best_val_score
