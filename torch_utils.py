@@ -36,6 +36,8 @@ class SeqDatasetOHE(Dataset):
     
         self.labels = torch.tensor(list(df[target_col].values)).unsqueeze(1)
         
+        #print("which seq?",self.seqs)
+        
     def __len__(self): return len(self.seqs)
     
     def __getitem__(self,idx):
@@ -593,7 +595,7 @@ def parity_pred_loci(models,df,device,locus_col='locus_tag',seq_col='seq',target
 
 
 
-def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0,figsize=(10,5)):
+def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0,figsize=(10,5),save_file=None):
     '''
     For each train/test loss trajectory, plot loss by epoch
     '''
@@ -615,6 +617,9 @@ def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0,figsize=(10,
     plt.xlabel("Epoch")
     plt.legend(bbox_to_anchor=(1,1),loc='upper left')
     plt.show()
+
+    if save_file:
+        plt.savefig(save_file)
 
 def get_confusion_data(model, model_name, ds, genes, oracle,loc2seq,device):
     '''
