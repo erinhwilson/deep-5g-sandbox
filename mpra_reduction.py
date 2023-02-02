@@ -62,7 +62,7 @@ def top_n_split(df, n, sort_col):
 def collect_model_stats(model_name,seq_len,
                         train_dl,val_dl,
                         lr=0.001,ep=1000,pat=100,
-                        opt=None,model=None,load_best=False):
+                        opt=None,model=None,load_best=True):
     '''
     Execute run of a model and return stats and objects related
     to its results
@@ -210,133 +210,150 @@ def quick_model_setup(model_type,input_size):
             input_size,
             1, # num tasks
         )
-    elif model_type == 'LSTM':
-        model = m.DNA_LSTM(
+    elif model_type == 'biLSTM':
+        model = m.DNA_biLSTM(
             input_size,
             DEVICE,
-            hidden_dim=50,
             num_classes=1
         )
     elif model_type == 'CNNLSTM':
         model = m.DNA_CNNLSTM(
             input_size,
             DEVICE,
-            hidden_dim=50,
             num_classes=1
         )
 
     else:
-        raise ValueError(f"Unknown model type {model_type}. (Current: CNN, LSTM, CNNLSTM)")
+        raise ValueError(f"Unknown model type {model_type}. (Current: CNN, biLSTM, CNNLSTM)")
 
     return model
 
 
 def main():
     set_seed()
-    df = load_cuperus_data()
 
-    # split data (originals)
-    full_train_df_og,test_df_og = top_n_split(df, 0.05, 't0')
-    train_df_og, val_df_og = tu.quick_split(full_train_df_og)
-    assert(train_df_og.shape[0] + val_df_og.shape[0] == full_train_df_og.shape[0])
+    # previous data loading before kfold
+    # df = load_cuperus_data()
+    # # split data (originals)
+    # full_train_df_og,test_df_og = top_n_split(df, 0.05, 't0')
+    # train_df_og, val_df_og = tu.quick_split(full_train_df_og)
+    # assert(train_df_og.shape[0] + val_df_og.shape[0] == full_train_df_og.shape[0])
 
-    # specify reduction levels and model types to try
-    # TODO: convert to yaml
-    reductions = [0.005,0.025,0.25,1.0]
-    models_to_try = ['CNN','LSTM','CNNLSTM']
+    # load pre-split data
+    train_file = 'data/mpra_splits/full_train_df_top5test.tsv'
+    test_file = 'data/mpra_splits/test_df_top5test.tsv'
+    full_train_df_og = pd.read_csv(train_file,sep='\t',index_col=0)
+    test_df_og = pd.read_csv(test_file,sep='\t',index_col=0)
 
-    # training_results
-    training_res = {}
+    # +----------------------------------------------+
+    # TODO load info from config file
+    cvs = [0,1]#,2,3,4] 
+    reductions = [0.005]#,0.025,0.25,1.0]
+    models_to_try = ['biLSTM','CNNLSTM']#['CNN','biLSTM','CNNLSTM']
+    out_dir = 'pred_out_5fold' #'pred_out'
+    # +----------------------------------------------+
 
-    # collect all prediction results
-    all_pred_res = pd.DataFrame()
+    # init result collection objects
+    training_res = {}               # training results
+    all_pred_res = pd.DataFrame()   # prediction results
 
-    # for each round of reductions
-    for r in reductions:
-        print(f"r = {r}")
-        # reduce the dataset size
-        train_df = train_df_og.sample(frac=r)
-        val_df = val_df_og.sample(frac=r)
-        test_df = test_df_og.sample(frac=r)
-        train_size = train_df.shape[0]
-
-        split_dfs = {
-            #'full_train':full_train_df,
-            'train':train_df,
-            'val':val_df,
-            'test':test_df,   
-        }
-
-        dataset_types = [
-            DatasetSpec('ohe'),
-        ]
-
-        seq_col_name = 'UTR' # TODO: put in config
-        target_col_name = 'growth_rate' # TODO: put in config
-        seq_len = len(train_df[seq_col_name].values[0])
-
-        # put into pytorch dataloaders
-        dls = tu.build_dataloaders_single(
-            train_df, 
-            val_df, 
-            dataset_types, # just OHE for now
-            seq_col=seq_col_name,
-            target_col=target_col_name,
-        )
-        ohe_train_dl,ohe_val_dl = dls['ohe']
-
-        # for each type of model
-        for model_type in models_to_try:
-            print(f"running model {model_type} for r={r}")
-            # model + reduction combo
-            combo_name = f"{model_type}_r{r}"
+    # load the pre-made KFold CV splits
+    for fold in cvs:
+        train_idxs = np.load(f'data/mpra_splits/{fold}_train.npy')
+        val_idxs = np.load(f'data/mpra_splits/{fold}_val.npy')
         
-            # initialize a model
-            model = quick_model_setup(model_type,seq_len)
-            # TODO: generate model name from something about model spec
-            model_name = model_type
-            
-            # run model and collect stats
-            t_res = collect_model_stats(
-                model_name,
-                seq_len,
-                ohe_train_dl,
-                ohe_val_dl,
-                lr=0.0001,
-                ep=5000,
-                pat=500,
-                opt=torch.optim.Adam,
-                model=model
-            )
-            # save this in training res
-            training_res[combo_name] = t_res
-            # plot loss 
-            tu.quick_loss_plot(t_res['data_label'],save_file=f"pred_out/{combo_name}_loss_plot.png")
+        train_df_og = full_train_df_og.iloc[train_idxs]
+        val_df_og = full_train_df_og.iloc[val_idxs]
 
-            splits_to_plot = ['val','test'] if train_size > 10000 else ['train','val','test']
-            p_res_df = parity_pred_by_split(
-                model,
-                model_name,
-                DEVICE,
-                split_dfs,
-                locus_col='index',
+        # for each round of reductions
+        for r in reductions:
+            print(f"r = {r}")
+            # reduce the dataset size
+            train_df = train_df_og.sample(frac=r)
+            val_df = val_df_og.sample(frac=r)
+            test_df = test_df_og.sample(frac=r)
+            train_size = train_df.shape[0]
+
+            split_dfs = {
+                #'full_train':full_train_df,
+                'train':train_df,
+                'val':val_df,
+                'test':test_df,   
+            }
+
+            dataset_types = [
+                DatasetSpec('ohe'),
+            ]
+
+            seq_col_name = 'UTR' # TODO: put in config
+            target_col_name = 'growth_rate' # TODO: put in config
+            locus_col_name = 'id'
+            seq_len = len(train_df[seq_col_name].values[0])
+
+            # put into pytorch dataloaders
+            dls = tu.build_dataloaders_single(
+                train_df, 
+                val_df, 
+                dataset_types, # just OHE for now
                 seq_col=seq_col_name,
                 target_col=target_col_name,
-                splits=splits_to_plot,
-                save_file=f"pred_out/{combo_name}_parity_plot.png"
             )
-            p_res_df['reduction'] = r
-            p_res_df['train_size'] = train_size
-            pred_file_name = f"pred_out/{combo_name}_pred_res.tsv"
-            # save a temp copy of the results?
-            p_res_df.to_csv(pred_file_name,sep='\t',index=False)
+            ohe_train_dl,ohe_val_dl = dls['ohe']
+
+            # for each type of model
+            for model_type in models_to_try:
+                print(f"running model {model_type} for r={r} (CVfold {fold})")
+                # model + reduction combo
+                combo_name = f"{model_type}_r{r}_cv{fold}" 
             
-            # add to master collection df
-            all_pred_res = pd.concat([all_pred_res,p_res_df]) # add whole data row to final collection
+                # initialize a model
+                model = quick_model_setup(model_type,seq_len)
+                # TODO: generate model name from something about model spec
+                model_name = model_type
+                
+                # run model and collect stats from training
+                t_res = collect_model_stats(
+                    model_name,
+                    seq_len,
+                    ohe_train_dl,
+                    ohe_val_dl,
+                    lr=0.0001,
+                    ep=5000,
+                    pat=500,
+                    opt=torch.optim.Adam,
+                    model=model
+                )
+                # save this in training res
+                training_res[combo_name] = t_res # does this go anywhere? get saved?
+                # plot loss 
+                tu.quick_loss_plot(t_res['data_label'],save_file=f"{out_dir}/{combo_name}_loss_plot.png")
+
+                splits_to_plot = ['val','test'] if train_size > 10000 else ['train','val','test']
+                # collect prediction stats
+                p_res_df = parity_pred_by_split(
+                    model,
+                    model_name,
+                    DEVICE,
+                    split_dfs,
+                    locus_col=locus_col_name,
+                    seq_col=seq_col_name,
+                    target_col=target_col_name,
+                    splits=splits_to_plot,
+                    save_file=f"{out_dir}/{combo_name}_parity_plot.png"
+                )
+                p_res_df['reduction'] = r
+                p_res_df['train_size'] = train_size
+                p_res_df['cv_fold'] = fold # which cv split
+                pred_file_name = f"{out_dir}/{combo_name}_pred_res.tsv"
+                # save a temp copy of the results?
+                p_res_df.to_csv(pred_file_name,sep='\t',index=False)
+                
+                # add to master collection df
+                all_pred_res = pd.concat([all_pred_res,p_res_df]) # add whole data row to final collection
 
 
     # after all this save the whole df
-    all_pred_res.to_csv(f"pred_out/all_pred_res.tsv",sep='\t',index=False)
+    all_pred_res.to_csv(f"{out_dir}/all_pred_res.tsv",sep='\t',index=False)
     
     print("DONE!")
 
