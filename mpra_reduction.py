@@ -247,9 +247,9 @@ def main():
 
     # +----------------------------------------------+
     # TODO load info from config file
-    cvs = [0,1]#,2,3,4] 
-    reductions = [0.005]#,0.025,0.25,1.0]
-    models_to_try = ['biLSTM','CNNLSTM']#['CNN','biLSTM','CNNLSTM']
+    cvs = [0,1,2,3,4] 
+    reductions = [0.005,0.025,0.25,1.0]
+    models_to_try = ['CNN','biLSTM','CNNLSTM']
     out_dir = 'pred_out_5fold' #'pred_out'
     # +----------------------------------------------+
 
