@@ -314,9 +314,10 @@ def main():
 
     # +----------------------------------------------+
     # TODO load info from config file
-    cvs = [0,1,2,3,4] 
-    #augs = [0,10,50,100]
-    augs = [0,1]
+    #cvs = [0,1,2,3,4]
+    cvs=[1] 
+    augs = [100,50,10,0]
+    #augs = [0,1]
     models_to_try = ['CNN','CNNLSTM','biLSTM']
     out_dir = 'out_synth_reg_5fold' #'pred_out'
 
@@ -340,11 +341,11 @@ def main():
             print(f"aug = {a}X")
             # augment the train dataset size
             train_df_aug = augment_mutate(train_df,a,seq_col=seq_col_name)
-            train_size = train_df.shape[0]
+            train_size = train_df_aug.shape[0]
 
             split_dfs = {
                 #'full_train':full_train_df,
-                'train':train_df,
+                'train':train_df_aug,
                 'val':val_df,
                 'test':test_df,   
             }
