@@ -22,6 +22,7 @@ import torch_utils as tu
 from torch_utils import DatasetSpec
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#DEVICE = torch.device('cpu')
 print(DEVICE)
 
 def set_seed(seed: int = 42) -> None:
@@ -314,12 +315,13 @@ def main():
 
     # +----------------------------------------------+
     # TODO load info from config file
-    #cvs = [0,1,2,3,4]
-    cvs=[1] 
-    augs = [100,50,10,0]
-    #augs = [0,1]
-    models_to_try = ['CNN','CNNLSTM','biLSTM']
-    out_dir = 'out_synth_reg_5fold' #'pred_out'
+    cvs = [0,1,2,3,4]
+    #cvs=[4] 
+    #augs = [0,10,50,100]
+    augs = [0,10]
+    #models_to_try = ['CNN','CNNLSTM','biLSTM']
+    models_to_try = ['CNN']
+    out_dir = 'out_cuda_debug' #'pred_out'
 
     seq_col_name = 'upstream_region' # TODO: put in config
     target_col_name = 'score' # TODO: put in config
@@ -364,6 +366,7 @@ def main():
                 dataset_types, # just OHE for now
                 seq_col=seq_col_name,
                 target_col=target_col_name,
+                #batch_size=10, # UNDO: make smaller batch size?
             )
             ohe_train_dl,ohe_val_dl = dls['ohe']
 
