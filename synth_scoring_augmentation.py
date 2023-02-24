@@ -293,9 +293,16 @@ def quick_model_setup(model_type,input_size):
             kernel_size=10,
             fc_node_num1=10
         )
+    elif model_type == 'CNN_simple':
+        model = m.DNA_CNN(
+            input_size,
+            num_filters=8,
+            kernel_size=10,
+            num_classes=1
+        )
 
     else:
-        raise ValueError(f"Unknown model type {model_type}. (Current: CNN, biLSTM, CNNLSTM)")
+        raise ValueError(f"Unknown model type {model_type}. (Current: CNN, biLSTM, CNNLSTM, CNN_simple)")
 
     return model
 
@@ -320,8 +327,8 @@ def main():
     #augs = [0,10,50,100]
     augs = [0,10]
     #models_to_try = ['CNN','CNNLSTM','biLSTM']
-    models_to_try = ['CNN']
-    out_dir = 'out_cuda_debug' #'pred_out'
+    models_to_try = ['CNN_simple']
+    out_dir = 'out_synth_reg_5fold' #'pred_out'
 
     seq_col_name = 'upstream_region' # TODO: put in config
     target_col_name = 'score' # TODO: put in config
