@@ -13,6 +13,7 @@ import random
 import seaborn as sns
 from sklearn.metrics import confusion_matrix,ConfusionMatrixDisplay,classification_report
 import time
+from torch.utils.data.sampler import WeightedRandomSampler
 
 import models as m
 import utils as u
@@ -120,6 +121,22 @@ def set_reg_class_up_down(df, col,thresh=1.0):
     
     reg_col = f"{col}_reg_UD"
     df[reg_col] = df[col].apply(lambda x: get_class(x))
+
+def make_weighted_sampler(df, target_col):
+    '''
+    Given a training dataframe, create a balanced sampler for the class
+    indicated
+    '''
+    # make weighted sampler for data loader
+    class_sample_count = df[target_col].value_counts()
+    # get 1/count as weight for each class
+    weight = dict([(x,(1. / class_sample_count[x])) for x in class_sample_count.keys()])
+    # apply new weight to each sample
+    samples_weight = np.array([weight[t] for t in df[target_col].values])
+    samples_weight = torch.from_numpy(samples_weight).double()
+
+    sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
+    return sampler
 
 
 def collect_model_stats(model_name,seq_len,
@@ -304,14 +321,16 @@ def main():
     # TODO load info from config file
     cvs = [0,1,2,3,4]
     augs = [0,10,50,100]
-    cvs = [0,1]
-    augs = [0,3,]
+    #cvs = [0,1]
+    #augs = [0,3,]
     models_to_try = ['CNN']
-    out_dir = 'out_synth_cls_5fold' #'pred_out'
+    out_dir = 'out_synth_cls_rw_5fold' #'pred_out'
 
     seq_col_name = 'upstream_region' # TODO: put in config
     target_col_name = 'score_reg_UD' # TODO: put in config
     locus_col_name = 'locus_tag'
+
+    reweight_samples = True 
     # +----------------------------------------------+
 
     # init result collection objects
@@ -343,7 +362,7 @@ def main():
 
             
             seq_len = len(train_df_aug[seq_col_name].values[0])
-
+            sampler = make_weighted_sampler(train_df_aug,target_col_name) if  reweight_samples else None
             # put into pytorch dataloaders
             dls = tu.build_dataloaders_single(
                 train_df_aug, 
@@ -351,6 +370,8 @@ def main():
                 dataset_types, # just OHE for now
                 seq_col=seq_col_name,
                 target_col=target_col_name,
+		sampler=sampler,
+                shuffle=False,
             )
             ohe_train_dl,ohe_val_dl = dls['ohe']
 
