@@ -39,7 +39,8 @@ class DNA_CNN(nn.Module):
                  seq_len,
                  num_filters=31,
                  kernel_size=3,
-                 num_classes=3
+                 num_classes=3,
+                 dropout=0.2,
                 ):
         super().__init__()
         self.seq_len = seq_len
@@ -52,8 +53,10 @@ class DNA_CNN(nn.Module):
             nn.Flatten(),
             nn.Linear(self.lin_nodes, 100),
             nn.ReLU(),
+            nn.Dropout(dropout),
             nn.Linear(100, 10),
             nn.ReLU(),
+            nn.Dropout(dropout),
             nn.Linear(10, num_classes),
             #nn.Softmax(dim=1)
             

@@ -8,6 +8,7 @@ import altair as alt
 import copy
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import random
 import seaborn as sns
@@ -142,7 +143,7 @@ def make_weighted_sampler(df, target_col):
 def collect_model_stats(model_name,seq_len,
                         train_dl,val_dl,
                         lr=0.001,ep=1000,pat=100,
-                        opt=None,model=None,load_best=True):
+                        opt=None,model=None,load_best=True,chkpt_path='checkpoint.pt'):
     '''
     Execute run of a model and return stats and objects related
     to its results
@@ -178,7 +179,8 @@ def collect_model_stats(model_name,seq_len,
         epochs=ep, 
         opt=opt,
         patience=pat,
-        load_best=load_best
+        load_best=load_best,
+        chkpt_path=chkpt_path
     )
     total_time = time.time() - start_time
 
@@ -333,6 +335,15 @@ def main():
     reweight_samples = True 
     # +----------------------------------------------+
 
+    # make out and checkpoint dirs
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+        print("Making out_dir:",out_dir)
+    chkpt_dir = os.path.join(out_dir, "chkpts")
+    if not os.path.exists(chkpt_dir):
+        os.makedirs(chkpt_dir)
+        print("Making chkpt_dir:",chkpt_dir)
+
     # init result collection objects
     training_res = {}               # training results
     all_pred_res = pd.DataFrame()   # prediction results
@@ -396,7 +407,8 @@ def main():
                     ep=5000,
                     pat=500,
                     opt=torch.optim.Adam,
-                    model=model
+                    model=model,
+                    chkpt_path=os.path.join(chkpt_dir,f"{combo_name}_chkpt.pt")
                 )
                 # save this in training res
                 training_res[combo_name] = t_res # does this go anywhere? get saved?
