@@ -175,6 +175,7 @@ def parity_pred_by_split(model,
                          target_col="score",
                          splits=['train','val'],
                          alpha=0.2,
+                         title=None,
                          save_file=None
                         ):
     '''
@@ -246,7 +247,8 @@ def parity_pred_by_split(model,
         pred_res.append(row)
     
     # show combined plot
-    plt.suptitle(model_name,fontsize=14)
+    title_str=title if title else model_name
+    plt.suptitle(title_str,fontsize=14)
     plt.tight_layout()
     plt.show()
     if save_file:
@@ -327,7 +329,7 @@ def main():
     cvs = [0,1,2,3,4]
     #cvs=[4] 
     #augs = [0,10,50,100]
-    augs = [0,10]
+    augs = [100]
     #models_to_try = ['CNN','CNNLSTM','biLSTM']
     models_to_try = ['CNN_simple']
     out_dir = 'out_synth_reg_5fold' #'pred_out'
@@ -365,7 +367,8 @@ def main():
 
             split_dfs = {
                 #'full_train':full_train_df,
-                'train':train_df_aug,
+                #'train':train_df_aug,
+                'train':train_df # use smaller un-augmented for parity plots
                 'val':val_df,
                 'test':test_df,   
             }
@@ -415,9 +418,9 @@ def main():
                 # save this in training res
                 training_res[combo_name] = t_res # does this go anywhere? get saved?
                 # plot loss 
-                tu.quick_loss_plot(t_res['data_label'],save_file=f"{out_dir}/{combo_name}_loss_plot.png")
+                tu.quick_loss_plot(t_res['data_label'],title=f"{combo_name} Loss Curve",save_file=f"{out_dir}/{combo_name}_loss_plot.png")
 
-                splits_to_plot = ['val','test'] if train_size > 10000 else ['train','val','test']
+                #splits_to_plot = ['val','test'] if train_size > 10000 else ['train','val','test']
                 # collect prediction stats
                 p_res_df = parity_pred_by_split(
                     model,
@@ -427,7 +430,8 @@ def main():
                     locus_col=locus_col_name,
                     seq_col=seq_col_name,
                     target_col=target_col_name,
-                    splits=splits_to_plot,
+                    #splits=splits_to_plot,
+                    splits=['train','val','test'], # plot all splits (just using small og train set)
                     save_file=f"{out_dir}/{combo_name}_parity_plot.png"
                 )
                 p_res_df['augmentation'] = a

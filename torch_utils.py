@@ -598,7 +598,7 @@ def parity_pred_loci(models,df,device,locus_col='locus_tag',seq_col='seq',target
 
 
 
-def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0,figsize=(10,5),save_file=None):
+def quick_loss_plot(data_label_list,loss_type="MSE Loss",title="Train/test Loss",sparse_n=0,figsize=(10,5),save_file=None):
     '''
     For each train/test loss trajectory, plot loss by epoch
     '''
@@ -618,11 +618,12 @@ def quick_loss_plot(data_label_list,loss_type="MSE Loss",sparse_n=0,figsize=(10,
     plt.legend()
     plt.ylabel(loss_type)
     plt.xlabel("Epoch")
+    plt.title(title)
     plt.legend(bbox_to_anchor=(1,1),loc='upper left')
     plt.show()
 
     if save_file:
-        plt.savefig(save_file)
+        plt.savefig(save_file,bbox_inches='tight')
 
 def get_confusion_data(model, model_name, ds, genes, oracle,loc2seq,device):
     '''
