@@ -40,6 +40,7 @@ class DNA_CNN(nn.Module):
                  num_filters=31,
                  kernel_size=3,
                  num_classes=3,
+                 fc_node_num=100,
                  dropout=0.2,
                 ):
         super().__init__()
@@ -51,13 +52,10 @@ class DNA_CNN(nn.Module):
             # ^^ changed from 4 to 1 channel??
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(self.lin_nodes, 100),
+            nn.Linear(self.lin_nodes, fc_node_num),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(100, 10),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(10, num_classes),
+            nn.Linear(fc_node_num, num_classes),
             #nn.Softmax(dim=1)
             
         ) 

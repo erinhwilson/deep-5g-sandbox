@@ -187,7 +187,7 @@ def parity_pred_by_split(model,
     #pred_dfs = {}
     pred_res = [] # collect prediction results for dataFrame
     
-    def parity_plot(title,ytrue,ypred,rigid=True):
+    def parity_plot(split_title,ytrue,ypred,rigid=True):
         '''
         Individual parity plot for a specific split
         '''
@@ -202,7 +202,7 @@ def parity_pred_by_split(model,
         if rigid:
             axs[i].set_ylim(min(xpoints),max(xpoints)) 
         axs[i].plot(xpoints, ypoints, linestyle='--', color='k', lw=2, scalex=False, scaley=False)
-        axs[i].set_title(f"{title} (r2:{r2:.2f}|p:{pr:.2f}|sp:{sp:.2f})",fontsize=14)
+        axs[i].set_title(f"{split_title} (r2:{r2:.2f}|p:{pr:.2f}|sp:{sp:.2f})",fontsize=14)
         axs[i].set_xlabel("Actual Score",fontsize=14)
         axs[i].set_ylabel("Predicted Score",fontsize=14)
 
@@ -432,7 +432,8 @@ def main():
                     target_col=target_col_name,
                     #splits=splits_to_plot,
                     splits=['train','val','test'], # plot all splits (just using small og train set)
-                    save_file=f"{out_dir}/{combo_name}_parity_plot.png"
+                    save_file=f"{out_dir}/{combo_name}_parity_plot.png",
+                    title=f"{combo_name}",
                 )
                 p_res_df['augmentation'] = a
                 p_res_df['train_size'] = train_size

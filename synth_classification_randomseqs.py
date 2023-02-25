@@ -199,7 +199,7 @@ def collect_model_stats(model_name,seq_len,
         'total_time':total_time
     }
 
-def get_confusion_stats(model,model_name,seq_list,save_file=True,title=None):#seqs,labels,seq_name):
+def get_confusion_stats(model,model_name,seq_list,title=None,save_file=True):#seqs,labels,seq_name):
     '''Get class predictions and plot confusion matrix'''
 
     def plot_confusion_raw_norm(mats):
@@ -273,7 +273,7 @@ def quick_model_setup(model_type,input_size):
             3, # num tasks
             num_filters1=8,
             num_filters2=4,
-            kernel_size1=10,
+            kernel_size1=8,
             kernel_size2=6,
             conv_pool_size1=2,
             fc_node_num1=5,
@@ -297,6 +297,15 @@ def quick_model_setup(model_type,input_size):
             fc_node_num1=10
         )
 
+    elif model_type == 'CNN_simple':
+        model = m.DNA_CNN(
+            input_size,
+            num_filters=8,
+            kernel_size=8,
+            num_classes=3,
+            fc_node_num=5
+        )
+
     else:
         raise ValueError(f"Unknown model type {model_type}. (Current: CNN, biLSTM, CNNLSTM)")
 
@@ -306,28 +315,26 @@ def quick_model_setup(model_type,input_size):
 def main():
     set_seed()
 
-    # load 5G TPM data
-    data_filename = "data/XY_lr_noCu_opFilt_20221031.tsv"
-    XYdf_og = pd.read_csv(data_filename,sep='\t')
+    # # load 5G TPM data
+    # data_filename = "data/XY_lr_noCu_opFilt_20221031.tsv"
+    # XYdf_og = pd.read_csv(data_filename,sep='\t')
 
-    # remove seq with N's for now
-    XYdf = XYdf_og[~XYdf_og['upstream_region'].str.contains("N")]
+    # # remove seq with N's for now
+    # XYdf = XYdf_og[~XYdf_og['upstream_region'].str.contains("N")]
 
-    # add synthetic score column
-    XYdf['score'] = XYdf['upstream_region'].apply(lambda x: synthetic_score(x))
+    # # add synthetic score column
+    # XYdf['score'] = XYdf['upstream_region'].apply(lambda x: synthetic_score(x))
 
-    # add synthetic classification category
-    set_reg_class_up_down(XYdf,'score',thresh=5)
+    # # add synthetic classification category
+    # set_reg_class_up_down(XYdf,'score',thresh=5)
 
 
     # +----------------------------------------------+
     # TODO load info from config file
     cvs = [0,1,2,3,4]
-    augs = [0,10,50,100]
-    #cvs = [0,1]
-    #augs = [0,3,]
-    models_to_try = ['CNN']
-    out_dir = 'out_synth_cls_rw_5fold' #'pred_out'
+    augs = [0]
+    models_to_try = ['CNN','CNN_simple']
+    out_dir = 'out_synth_cls_randomseq_rw_5fold' #'pred_out'
 
     seq_col_name = 'upstream_region' # TODO: put in config
     target_col_name = 'score_reg_UD' # TODO: put in config
@@ -351,12 +358,11 @@ def main():
 
     # load the pre-made GroupShuffle splits (keep similar promoters in same split)
     for fold in cvs:
-        train_df = pd.read_csv(f'data/synth_cls_splits/cv{fold}_train.tsv',sep='\t')
-        test_df = pd.read_csv(f'data/synth_cls_splits/cv{fold}_test.tsv',sep='\t')
+        train_df = pd.read_csv(f'data/synth_cls_randomseq_splits/cv{fold}_train_12000.tsv',sep='\t')
+        test_df = pd.read_csv(f'data/synth_cls_randomseq_splits/cv{fold}_test_12000.tsv',sep='\t')
 
         # for each round of augmentation
         for a in augs:
-            print(f"aug = {a}X")
             # augment the train dataset size
             train_df_aug = augment_mutate(train_df,a,seq_col=seq_col_name)
             train_size = train_df_aug.shape[0]
