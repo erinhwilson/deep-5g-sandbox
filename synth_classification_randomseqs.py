@@ -1,5 +1,5 @@
-# code to run cycles of synthetic scoring prediction from 5G sequences
-# with data augmentation and 5-fold CV
+# code to run cycles of synthetic scoring prediction from randomized 300bp seqs
+# with data reduction and 5-fold CV
 
 import torch
 from torch import nn
@@ -332,7 +332,8 @@ def main():
     # +----------------------------------------------+
     # TODO load info from config file
     cvs = [0,1,2,3,4]
-    augs = [0]
+    #augs = [0]
+    reductions = [0.1,0.25,0.5]
     models_to_try = ['CNN','CNN_simple']
     out_dir = 'out_synth_cls_randomseq_rw_5fold' #'pred_out'
 
@@ -358,18 +359,19 @@ def main():
 
     # load the pre-made GroupShuffle splits (keep similar promoters in same split)
     for fold in cvs:
-        train_df = pd.read_csv(f'data/synth_cls_randomseq_splits/cv{fold}_train_12000.tsv',sep='\t')
-        test_df = pd.read_csv(f'data/synth_cls_randomseq_splits/cv{fold}_test_12000.tsv',sep='\t')
+        train_df_og = pd.read_csv(f'data/synth_cls_randomseq_splits/cv{fold}_train_12000.tsv',sep='\t')
+        test_df_og = pd.read_csv(f'data/synth_cls_randomseq_splits/cv{fold}_test_12000.tsv',sep='\t')
 
-        # for each round of augmentation
-        for a in augs:
-            # augment the train dataset size
-            train_df_aug = augment_mutate(train_df,a,seq_col=seq_col_name)
-            train_size = train_df_aug.shape[0]
+        # for each round of reduction
+        for r in reductions:
+            # reduce the train/test size
+            train_df = train_df_og.sample(frac=r)
+            test_df = test_df_og.sample(frac=r)
+            train_size = train_df.shape[0]
 
             split_dfs = {
                 #'full_train':full_train_df,
-                'train':train_df_aug,
+                'train':train_df,
                 #'val':val_df,
                 'test':test_df,   
             }
@@ -379,11 +381,11 @@ def main():
             ]
 
             
-            seq_len = len(train_df_aug[seq_col_name].values[0])
-            sampler = make_weighted_sampler(train_df_aug,target_col_name) if  reweight_samples else None
+            seq_len = len(train_df[seq_col_name].values[0])
+            sampler = make_weighted_sampler(train_df,target_col_name) if  reweight_samples else None
             # put into pytorch dataloaders
             dls = tu.build_dataloaders_single(
-                train_df_aug, 
+                train_df, 
                 test_df, 
                 dataset_types, # just OHE for now
                 seq_col=seq_col_name,
@@ -395,9 +397,9 @@ def main():
 
             # for each type of model
             for model_type in models_to_try:
-                print(f"running model {model_type} for aug={a}X (CVfold {fold})")
+                print(f"running model {model_type} for red={r}X (CVfold {fold})")
                 # model + reduction combo
-                combo_name = f"{model_type}_aug{a}X_cv{fold}" 
+                combo_name = f"{model_type}_r{r}X_cv{fold}" 
             
                 # initialize a model
                 model = quick_model_setup(model_type,seq_len)
@@ -435,7 +437,7 @@ def main():
                     title=f"{combo_name}"
                 )
 
-                p_res_df['augmentation'] = a
+                p_res_df['reduction'] = r
                 p_res_df['train_size'] = train_size
                 p_res_df['cv_fold'] = fold # which cv split
                 p_res_df['best_val_score'] = t_res['best_val_score']
